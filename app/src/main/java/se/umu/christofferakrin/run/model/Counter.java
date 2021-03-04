@@ -1,7 +1,7 @@
 package se.umu.christofferakrin.run.model;
 
-/** Handles an active run. */
-public class RunHandler implements Runnable{
+/** Handles an active runs timer. */
+public class Counter implements Runnable{
 
     private final int SIM = 1000; /* Seconds in milliseconds. */
     private long timer;
@@ -13,9 +13,7 @@ public class RunHandler implements Runnable{
     private Thread runningThread;
     private boolean running;
 
-    private DistanceHandler distanceHandler;
-
-    public RunHandler(int second, int minute, int hour){
+    public Counter(int second, int minute, int hour){
         if(second > 0) second = 0;
         if(minute > 0) minute = 0;
         if(hour > 0) hour = 0;
@@ -24,11 +22,9 @@ public class RunHandler implements Runnable{
         this.minute = minute;
         this.hour = hour;
 
-        distanceHandler = new DistanceHandler();
-
     }
 
-    public RunHandler(){
+    public Counter(){
         this(0, 0, 0);
     }
 

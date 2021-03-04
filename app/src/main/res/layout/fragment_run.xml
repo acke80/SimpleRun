@@ -7,23 +7,48 @@
         tools:context=".controller.run.RunFragment">
 
 
-    <TextView
-            android:id="@+id/text_run"
-            android:layout_width="match_parent"
+    <LinearLayout
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textAlignment="center"
-            android:textSize="42sp"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.0"
-            app:layout_constraintBottom_toTopOf="@+id/start_button" />
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            android:orientation="vertical"
+            android:layout_marginTop="32dp">
+
+        <TextView
+                android:id="@+id/text_counter"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textAlignment="center"
+                android:textSize="60sp"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintHorizontal_bias="0.0"
+                app:layout_constraintBottom_toTopOf="@+id/start_button" />
+
+        <TextView
+                android:id="@+id/text_distance"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textAlignment="center"
+                android:fontFamily="sans-serif-light"
+                android:textSize="54sp"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintHorizontal_bias="0.0"
+                app:layout_constraintBottom_toTopOf="@+id/start_button" />
+    </LinearLayout>
+
 
     <Button
             android:text="Start"
-            android:layout_width="wrap_content"
-            android:layout_height="64dp"
+            android:layout_width="128dp"
+            android:layout_height="128dp"
             android:id="@+id/start_button"
+            android:backgroundTint="@color/purple_200"
+            android:background="@drawable/rounded_button"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
@@ -31,22 +56,30 @@
 
     <Button
             android:text="Stop"
+            style="style/Widget.MaterialComponents.Button.Icon"
+            app:icon="@drawable/ic_baseline_stop_24"
             android:layout_width="wrap_content"
-            android:layout_height="64dp"
+            android:layout_height="56dp"
+            android:backgroundTint="@color/red"
             android:id="@+id/stop_button"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toStartOf="@+id/start_button"
-            android:layout_marginBottom="128dp" />
+            android:layout_marginBottom="128dp"
+            android:visibility="gone" />
 
     <Button
             android:text="Pause"
+            style="style/Widget.MaterialComponents.Button.Icon"
+            app:icon="@drawable/ic_baseline_pause_24"
             android:layout_width="wrap_content"
-            android:layout_height="64dp"
+            android:layout_height="56dp"
+            android:backgroundTint="@color/purple_700"
             android:id="@+id/pause_button"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toEndOf="@+id/start_button"
-            android:layout_marginBottom="128dp" />
+            android:layout_marginBottom="128dp"
+            android:visibility="gone" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -34,8 +34,11 @@ public class RunFragment extends Fragment{
                 new ViewModelProvider(this).get(RunViewModel.class);
         View root = inflater.inflate(R.layout.fragment_run, container, false);
 
-        final TextView textView = root.findViewById(R.id.text_run);
-        runViewModel.getMainText().observe(getViewLifecycleOwner(), textView::setText);
+        final TextView textViewCounter = root.findViewById(R.id.text_counter);
+        runViewModel.getCounterText().observe(getViewLifecycleOwner(), textViewCounter::setText);
+
+        final TextView textViewDistance = root.findViewById(R.id.text_distance);
+        runViewModel.getDistanceText().observe(getViewLifecycleOwner(), textViewDistance::setText);
 
         final Button startButton = root.findViewById(R.id.start_button);
         startButton.setOnClickListener(v -> startRun());
