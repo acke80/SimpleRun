@@ -57,9 +57,15 @@ public class RunViewModel extends ViewModel{
         return distanceText;
     }
 
+    public boolean isRunning(){
+        return counter.isRunning() || countDownCounter.isRunning();
+    }
+
     public void setLocation(Location location){
         if(!counter.isRunning()) return;
 
         distanceHandler.setLocation(location);
     }
+
+
 }

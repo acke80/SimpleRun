@@ -14,9 +14,9 @@ public class Counter implements Runnable{
     private boolean running;
 
     public Counter(int second, int minute, int hour){
-        if(second > 0) second = 0;
-        if(minute > 0) minute = 0;
-        if(hour > 0) hour = 0;
+        if(second < 0) second = 0;
+        if(minute < 0) minute = 0;
+        if(hour < 0) hour = 0;
 
         this.second = second;
         this.minute = minute;

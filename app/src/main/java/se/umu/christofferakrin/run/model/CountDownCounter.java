@@ -9,7 +9,10 @@ public class CountDownCounter{
     private final CountDownTimer countDownTimer;
     private boolean finishedCountDown;
 
+    private boolean running;
+
     public CountDownCounter(int seconds){
+        running = true;
         countDownTimer = new CountDownTimer((seconds + 1) * 1000, 1000){
             @Override
             public void onTick(long millisUntilFinished){
@@ -23,6 +26,7 @@ public class CountDownCounter{
             @Override
             public void onFinish(){
                 finishedCountDown = true;
+                running = false;
             }
         };
     }
@@ -37,6 +41,10 @@ public class CountDownCounter{
 
     public String getStringValue(){
         return countString;
+    }
+
+    public boolean isRunning(){
+        return isRunning();
     }
 
 }
