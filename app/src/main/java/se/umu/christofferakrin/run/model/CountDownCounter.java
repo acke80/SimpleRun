@@ -5,7 +5,7 @@ import android.os.CountDownTimer;
 
 public class CountDownCounter{
 
-    private String countString;
+    private String countString = "";
     private final CountDownTimer countDownTimer;
     private boolean finishedCountDown;
 

@@ -16,19 +16,31 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import se.umu.christofferakrin.run.MainActivity;
 import se.umu.christofferakrin.run.R;
+import se.umu.christofferakrin.run.model.CountDownCounter;
 import se.umu.christofferakrin.run.model.Counter;
 import se.umu.christofferakrin.run.model.DistanceHandler;
 
 import static se.umu.christofferakrin.run.RunApp.CHANNEL_ID;
+import static se.umu.christofferakrin.run.controller.run.RunFragment.COUNTER_KEY;
+import static se.umu.christofferakrin.run.controller.run.RunFragment.DISTANCE_KEY;
 
 
 public class RunService extends Service{
 
+    private CountDownCounter countDownCounter;
     private Counter counter;
     private DistanceHandler distanceHandler;
 
     private LocationManager locationManager;
     private LocationListener locationListener;
+
+    private Thread runningThread;
+
+    /* Store the current values. We only want to broadcast when something changes. */
+    private String curCounterString = "";
+    private String curDistanceString = "";
+
+    private boolean running;
 
     @Nullable
     @Override
@@ -36,17 +48,50 @@ public class RunService extends Service{
         return null;
     }
 
-    @SuppressLint("MissingPermission")
+
     @Override
     public int onStartCommand(Intent intent, int flags, int startId){
-        counter = new Counter(
-                intent.getIntExtra("second", 0),
-                intent.getIntExtra("minute", 0),
-                intent.getIntExtra("hour", 0)
-        );
 
-        distanceHandler = new DistanceHandler(intent.getFloatExtra("distance", 0f));
+        startRun();
 
+        Intent notificationIntent = new Intent(this, MainActivity.class);
+        PendingIntent pendingIntent = PendingIntent.getActivity(this,
+                0, notificationIntent, 0);
+
+        Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
+                .setContentTitle("Running")
+                .setContentText("")
+                .setSmallIcon(R.drawable.run)
+                .setContentIntent(pendingIntent)
+                .build();
+
+
+        startForeground(1, notification);
+
+        return START_NOT_STICKY;
+    }
+
+
+    @Override
+    public void onDestroy(){
+        super.onDestroy();
+
+        running = false;
+
+        try{
+            runningThread.join();
+        }catch(InterruptedException e){
+            e.printStackTrace();
+        }
+
+        locationManager.removeUpdates(locationListener);
+    }
+
+    @SuppressLint("MissingPermission")
+    private void startRun(){
+        countDownCounter = new CountDownCounter(3);
+        counter = new Counter();
+        distanceHandler = new DistanceHandler();
 
         locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
 
@@ -55,32 +100,43 @@ public class RunService extends Service{
         locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 2500,
                 5, locationListener);
 
-        Intent notificationIntent = new Intent(this, MainActivity.class);
-        PendingIntent pendingIntent = PendingIntent.getActivity(this,
-                0, notificationIntent, 0);
 
-        Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
-                .setContentTitle("Running")
-                .setContentText(Float.toString(intent.getFloatExtra("distance", 0f)))
-                .setSmallIcon(R.drawable.run)
-                .setContentIntent(pendingIntent)
-                .build();
+        runningThread = new Thread(() -> {
+            running = true;
+            countDownCounter.start();
 
-        startForeground(1, notification);
+            while(running){
+                if(countDownCounter.isFinished()){
+                    if(!counter.isRunning()) counter.start();
 
-        return START_NOT_STICKY;
+                    if(!curCounterString.equals(counter.getTimerString())){
+                        curCounterString = counter.getTimerString();
+                        broadcast(COUNTER_KEY, counter.getTimerString());
+                    }
+
+                    if(!curDistanceString.equals(distanceHandler.getDistanceAsString())){
+                        curDistanceString = distanceHandler.getDistanceAsString();
+                        broadcast(DISTANCE_KEY, distanceHandler.getDistanceAsString());
+                    }
+
+
+                }else{
+                    if(!curCounterString.equals(countDownCounter.getStringValue())){
+                        curCounterString = countDownCounter.getStringValue();
+                        broadcast(COUNTER_KEY, countDownCounter.getStringValue());
+                    }
+
+                }
+
+            }
+        });
+
+        runningThread.start();
     }
 
-    @Override
-    public void onDestroy(){
-        super.onDestroy();
-
-        broadcast();
-    }
-
-    private void broadcast(){
-        Intent RTReturn = new Intent("distance");
-        RTReturn.putExtra("distance", distanceHandler.getDistanceInMeters());
+    private void broadcast(String action, String text){
+        Intent RTReturn = new Intent(action);
+        RTReturn.putExtra(action, text);
         LocalBroadcastManager.getInstance(this).sendBroadcast(RTReturn);
     }
 }

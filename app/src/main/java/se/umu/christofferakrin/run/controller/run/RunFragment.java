@@ -1,6 +1,7 @@
 package se.umu.christofferakrin.run.controller.run;
 
 import android.Manifest;
+import android.app.ActivityManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -19,19 +20,11 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.fragment.app.Fragment;
-import androidx.lifecycle.ViewModelProvider;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import se.umu.christofferakrin.run.R;
 
-import static android.content.Context.LOCATION_SERVICE;
-
 public class RunFragment extends Fragment{
-
-    private RunViewModel runViewModel;
-
-    private LocationManager locationManager;
-    private LocationListener locationListener;
 
     private TextView textViewCounter;
     private TextView textViewDistance;
@@ -40,7 +33,8 @@ public class RunFragment extends Fragment{
     private Button stopButton;
     private Button pauseButton;
 
-    public static final String RECEIVE_DISTANCE = "distance";
+    public static final String DISTANCE_KEY = "distance";
+    public static final String COUNTER_KEY = "counter";
 
     private BroadcastReceiver bReceiver;
     LocalBroadcastManager bManager;
@@ -49,15 +43,10 @@ public class RunFragment extends Fragment{
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState){
 
-        runViewModel =
-                new ViewModelProvider(this).get(RunViewModel.class);
         View root = inflater.inflate(R.layout.fragment_run, container, false);
 
         textViewCounter = root.findViewById(R.id.text_counter);
-        runViewModel.getCounterText().observe(getViewLifecycleOwner(), textViewCounter::setText);
-
         textViewDistance = root.findViewById(R.id.text_distance);
-        runViewModel.getDistanceText().observe(getViewLifecycleOwner(), textViewDistance::setText);
 
         startButton = root.findViewById(R.id.start_button);
         startButton.setOnClickListener(v -> startRun());
@@ -71,27 +60,9 @@ public class RunFragment extends Fragment{
 
         adaptTextSize();
 
-        /*
-        if(runViewModel.isRunning()){
-            startButton.setVisibility(View.GONE);
-            stopButton.setVisibility(View.VISIBLE);
-            pauseButton.setVisibility(View.VISIBLE);
-        }*/
-
-        bReceiver = new BroadcastReceiver() {
-            @Override
-            public void onReceive(Context context, Intent intent) {
-                if(intent.getAction().equals(RECEIVE_DISTANCE)) {
-                    float distance = intent.getFloatExtra("distance", 0f);
-                    System.out.println("Recieved: "+ distance);
-                }
-            }
-        };
-
-        bManager = LocalBroadcastManager.getInstance(getActivity());
-        IntentFilter intentFilter = new IntentFilter();
-        intentFilter.addAction(RECEIVE_DISTANCE);
-        bManager.registerReceiver(bReceiver, intentFilter);
+        if(isServiceRunning()){
+            initBroadcastReceiver();
+        }
 
         return root;
     }
@@ -100,55 +71,79 @@ public class RunFragment extends Fragment{
     public void onDestroy(){
         super.onDestroy();
 
-        bManager.unregisterReceiver(bReceiver);
+        if(bManager != null)
+            bManager.unregisterReceiver(bReceiver);
     }
 
-    public void startRunningService(){
+    private void startRunningService(){
         Intent intent = new Intent(getActivity(), RunService.class);
-        intent.putExtra("distance", "10 m");
-
         getActivity().startService(intent);
     }
 
-    public void stopRunningService(){
+    private void stopRunningService(){
+        bManager.unregisterReceiver(bReceiver);
         Intent intent = new Intent(getActivity(), RunService.class);
         getActivity().stopService(intent);
     }
 
-    public void startRun(){
+    /** Checks if the RunService is running. */
+    private boolean isServiceRunning() {
+        ActivityManager manager = (ActivityManager) getActivity().getSystemService(Context.ACTIVITY_SERVICE);
+        for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
+            if (RunService.class.getName().equals(service.service.getClassName())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void startRun(){
         if(ActivityCompat.checkSelfPermission(getContext(),
                 Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED){
             requestFineLocationPermission();
             return;
         }
 
-        locationManager = (LocationManager) getContext().getSystemService(LOCATION_SERVICE);
-
-        runViewModel.startRun();
-
-        locationListener = location -> runViewModel.setLocation(location);
-
         startButton.setVisibility(View.GONE);
         stopButton.setVisibility(View.VISIBLE);
         pauseButton.setVisibility(View.VISIBLE);
 
-        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 2500,
-                5, locationListener);
-
+        initBroadcastReceiver();
         startRunningService();
     }
 
-    public void requestFineLocationPermission(){
+    private void requestFineLocationPermission(){
         ActivityCompat.requestPermissions(getActivity(), new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 1);
     }
 
-    public void adaptTextSize(){
+    private void adaptTextSize(){
         DisplayMetrics metrics = getResources().getDisplayMetrics();
 
         int DeviceTotalWidth = metrics.widthPixels;
 
         textViewCounter.setTextSize(DeviceTotalWidth/20f);
         textViewDistance.setTextSize(DeviceTotalWidth/20f);
+    }
+
+    private void initBroadcastReceiver(){
+        bReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                if(intent.getAction().equals(DISTANCE_KEY)) {
+                    String distance = intent.getStringExtra(DISTANCE_KEY);
+                    textViewDistance.setText(distance);
+                }else if(intent.getAction().equals(COUNTER_KEY)){
+                    String counter = intent.getStringExtra(COUNTER_KEY);
+                    textViewCounter.setText(counter);
+                }
+            }
+        };
+
+        bManager = LocalBroadcastManager.getInstance(getActivity());
+        IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction(DISTANCE_KEY);
+        intentFilter.addAction(COUNTER_KEY);
+        bManager.registerReceiver(bReceiver, intentFilter);
     }
 
 }
