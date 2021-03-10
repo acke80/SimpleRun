@@ -2,6 +2,7 @@ package se.umu.christofferakrin.run.controller.run;
 
 import android.annotation.SuppressLint;
 import android.app.Notification;
+import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
@@ -41,9 +42,10 @@ public class RunService extends Service{
 
     /* Store the current values. We only want to broadcast when something changes. */
     private String curCounterString = "";
-    private String curDistanceString = "";
 
     private boolean running;
+
+    NotificationCompat.Builder notificationBuilder;
 
     @Nullable
     @Override
@@ -61,15 +63,18 @@ public class RunService extends Service{
         PendingIntent pendingIntent = PendingIntent.getActivity(this,
                 0, notificationIntent, 0);
 
-        Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
-                .setContentTitle("Running")
+
+        /* This is deprecated, but I don't know how I can change the content of the
+        * notification without accessing the builder instance. */
+        notificationBuilder = new NotificationCompat.Builder(this, CHANNEL_ID)
                 .setContentText("")
+                .setContentTitle("Running")
                 .setSmallIcon(R.drawable.run)
                 .setContentIntent(pendingIntent)
-                .build();
+                .setNotificationSilent()
+                .setOnlyAlertOnce(true);
 
-
-        startForeground(1, notification);
+        startForeground(1, notificationBuilder.build());
 
         return START_NOT_STICKY;
     }
@@ -121,12 +126,14 @@ public class RunService extends Service{
 
                     if(!curCounterString.equals(counter.getTimerString())){
                         curCounterString = counter.getTimerString();
-                        broadcast(COUNTER_KEY, counter.getElapsedSeconds());
-                    }
 
-                    if(!curDistanceString.equals(distanceHandler.getDistanceAsString())){
-                        curDistanceString = distanceHandler.getDistanceAsString();
+                        broadcast(COUNTER_KEY, counter.getElapsedSeconds());
                         broadcast(DISTANCE_KEY, distanceHandler.getDistanceInMeters());
+
+                        setNotificationContentText(
+                                "Distance: " + distanceHandler.getDistanceAsString(),
+                                counter.getTimerString()
+                        );
                     }
 
                 }else{
@@ -142,8 +149,10 @@ public class RunService extends Service{
     }
 
     /** Sets the content text seen in the Notification for this Service. */
-    private void setNotificationContentText(String text){
-
+    private void setNotificationContentText(String contentTitle, String contentText){
+        notificationBuilder.setContentTitle(contentTitle);
+        notificationBuilder.setContentText(contentText);
+        getSystemService(NotificationManager.class).notify(1, notificationBuilder.build());
     }
 
     private void broadcast(String action, Object data){
