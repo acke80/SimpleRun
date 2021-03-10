@@ -20,7 +20,6 @@ public class CountDownCounter{
                     countString = "Go!";
                 else
                     countString = Integer.toString((int) (millisUntilFinished / 1000));
-
             }
 
             @Override

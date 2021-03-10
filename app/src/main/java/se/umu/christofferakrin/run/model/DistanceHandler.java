@@ -14,12 +14,9 @@ public class DistanceHandler{
     private float distanceInMeters;
     private Location curLocation;
 
-    private final DecimalFormat decimalFormat;
-
     public DistanceHandler(float distanceInMeters){
         this.distanceInMeters = distanceInMeters;
-        decimalFormat = new DecimalFormat("#.##");
-        decimalFormat.setRoundingMode(RoundingMode.FLOOR);
+
     }
 
     public DistanceHandler(){
@@ -27,10 +24,7 @@ public class DistanceHandler{
     }
 
     public String getDistanceAsString(){
-        if(distanceInMeters < 1000)
-            return (int)distanceInMeters + " m";
-
-        return decimalFormat.format(distanceInMeters / 1000) + " km";
+        return parseDistanceToString(distanceInMeters);
     }
 
     public void setLocation(Location location){
@@ -52,4 +46,15 @@ public class DistanceHandler{
     public float getDistanceInMeters(){
         return distanceInMeters;
     }
+
+    public static String parseDistanceToString(float distance){
+        if(distance < 1000)
+            return (int) distance + " m";
+
+        DecimalFormat decimalFormat = new DecimalFormat("#.##");
+        decimalFormat.setRoundingMode(RoundingMode.FLOOR);
+
+        return decimalFormat.format(distance / 1000) + " km";
+    }
+
 }

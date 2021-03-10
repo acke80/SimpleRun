@@ -24,6 +24,10 @@ public class Counter implements Runnable{
 
     }
 
+    public Counter(int second){
+        this(second % 60, (second % 3600) / 60, second / 3600);
+    }
+
     public Counter(){
         this(0, 0, 0);
     }
@@ -71,6 +75,26 @@ public class Counter implements Runnable{
     }
 
     public String getTimerString(){
+        return parseSecondsToTimerString(second, minute, hour);
+    }
+
+    public boolean isRunning(){
+        return running;
+    }
+
+    public int getElapsedSeconds(){
+        return second + minute * 60 + hour * 3600;
+    }
+
+    public static String parseSecondsToTimerString(int second){
+        int hour = second / 3600;
+        int minute = (second % 3600) / 60;
+        second = second % 60;
+
+        return parseSecondsToTimerString(second, minute, hour);
+    }
+
+    public static String parseSecondsToTimerString(int second, int minute, int hour){
         String secondString = "";
         String minuteString = "";
         String hourString = "";
@@ -91,10 +115,6 @@ public class Counter implements Runnable{
             hourString = hour + "h" + " : ";
 
         return hourString + minuteString + secondString;
-    }
-
-    public boolean isRunning(){
-        return running;
     }
 
 }

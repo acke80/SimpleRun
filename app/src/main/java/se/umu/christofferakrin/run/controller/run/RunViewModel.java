@@ -1,71 +1,73 @@
 package se.umu.christofferakrin.run.controller.run;
 
-import android.location.Location;
 
-import androidx.lifecycle.LiveData;
-import androidx.lifecycle.MutableLiveData;
+import androidx.lifecycle.SavedStateHandle;
 import androidx.lifecycle.ViewModel;
 
-import se.umu.christofferakrin.run.model.CountDownCounter;
 import se.umu.christofferakrin.run.model.Counter;
 import se.umu.christofferakrin.run.model.DistanceHandler;
+import se.umu.christofferakrin.run.model.RunState;
+
+import static se.umu.christofferakrin.run.controller.run.RunFragment.STATE_KEY;
+
 
 public class RunViewModel extends ViewModel{
 
-    private MutableLiveData<String> counterText;
-    private MutableLiveData<String> distanceText;
+    private SavedStateHandle stateHandle;
 
-    private CountDownCounter countDownCounter;
-    private Counter counter;
-    private DistanceHandler distanceHandler;
+    private RunState runState;
 
-    public RunViewModel(){
-        counterText = new MutableLiveData<>();
-        distanceText = new MutableLiveData<>();
-        countDownCounter = new CountDownCounter(3);
-        counter = new Counter();
+    public RunViewModel(SavedStateHandle stateHandle){
+        this.stateHandle = stateHandle;
 
-        distanceHandler = new DistanceHandler();
+        if(stateHandle.contains(STATE_KEY)){
+            runState = stateHandle.get(STATE_KEY);
+        }else{
+            runState = new RunState();
+        }
+
+        saveState();
     }
 
-    public void startRun(){
-        if(counter.isRunning()) return;
-
-        countDownCounter.start();
-
-        new Thread(() -> {
-            while(true){
-                if(countDownCounter.isFinished()){
-                    if(!counter.isRunning()) counter.start();
-
-                    counterText.postValue(counter.getTimerString());
-                    distanceText.postValue(distanceHandler.getDistanceAsString());
-
-                }else{
-                    counterText.postValue(countDownCounter.getStringValue());
-                }
-
-            }
-        }).start();
+    public void setDistanceInMeters(float distance){
+        runState.setDistanceInMeters(distance);
+        saveState();
     }
 
-    public LiveData<String> getCounterText(){
-        return counterText;
+    public void setElapsedSeconds(int seconds){
+        runState.setElapsedSeconds(seconds);
+        saveState();
     }
 
-    public LiveData<String> getDistanceText(){
-        return distanceText;
+    public String getTimerString(){
+        return Counter.parseSecondsToTimerString(runState.getElapsedSeconds());
     }
 
-    public boolean isRunning(){
-        return counter.isRunning() || countDownCounter.isRunning();
+    public String getDistanceString(){
+        return DistanceHandler.parseDistanceToString(runState.getDistanceInMeters());
     }
 
-    public void setLocation(Location location){
-        if(!counter.isRunning()) return;
-
-        distanceHandler.setLocation(location);
+    public void setPaused(boolean paused){
+        runState.setPaused(paused);
+        saveState();
     }
 
+    public boolean isPaused(){
+        return runState.isPaused();
+    }
+
+
+    public RunState getRunState(){
+        return runState;
+    }
+
+    public void resetRunState(){
+        runState = new RunState();
+        saveState();
+    }
+
+    private void saveState(){
+        stateHandle.set(STATE_KEY, runState);
+    }
 
 }

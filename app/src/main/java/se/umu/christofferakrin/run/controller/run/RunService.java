@@ -19,10 +19,13 @@ import se.umu.christofferakrin.run.R;
 import se.umu.christofferakrin.run.model.CountDownCounter;
 import se.umu.christofferakrin.run.model.Counter;
 import se.umu.christofferakrin.run.model.DistanceHandler;
+import se.umu.christofferakrin.run.model.RunState;
 
 import static se.umu.christofferakrin.run.RunApp.CHANNEL_ID;
+import static se.umu.christofferakrin.run.controller.run.RunFragment.COUNTDOWN_KEY;
 import static se.umu.christofferakrin.run.controller.run.RunFragment.COUNTER_KEY;
 import static se.umu.christofferakrin.run.controller.run.RunFragment.DISTANCE_KEY;
+import static se.umu.christofferakrin.run.controller.run.RunFragment.STATE_KEY;
 
 
 public class RunService extends Service{
@@ -52,7 +55,7 @@ public class RunService extends Service{
     @Override
     public int onStartCommand(Intent intent, int flags, int startId){
 
-        startRun();
+        startRun(intent.getParcelableExtra(STATE_KEY));
 
         Intent notificationIntent = new Intent(this, MainActivity.class);
         PendingIntent pendingIntent = PendingIntent.getActivity(this,
@@ -87,11 +90,18 @@ public class RunService extends Service{
         locationManager.removeUpdates(locationListener);
     }
 
+    /** Starts the Location listener and the run thread which handles broadcasting.
+     * Suppresses Missing Permission as the Service expects the Permission to be handled
+     * before it is started. */
     @SuppressLint("MissingPermission")
-    private void startRun(){
-        countDownCounter = new CountDownCounter(3);
-        counter = new Counter();
-        distanceHandler = new DistanceHandler();
+    private void startRun(RunState runState){
+        if(runState == null || runState.getElapsedSeconds() > 0)
+            countDownCounter = new CountDownCounter(0);
+        else
+            countDownCounter = new CountDownCounter(3);
+
+        counter = new Counter(runState.getElapsedSeconds());
+        distanceHandler = new DistanceHandler(runState.getDistanceInMeters());
 
         locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
 
@@ -111,32 +121,41 @@ public class RunService extends Service{
 
                     if(!curCounterString.equals(counter.getTimerString())){
                         curCounterString = counter.getTimerString();
-                        broadcast(COUNTER_KEY, counter.getTimerString());
+                        broadcast(COUNTER_KEY, counter.getElapsedSeconds());
                     }
 
                     if(!curDistanceString.equals(distanceHandler.getDistanceAsString())){
                         curDistanceString = distanceHandler.getDistanceAsString();
-                        broadcast(DISTANCE_KEY, distanceHandler.getDistanceAsString());
+                        broadcast(DISTANCE_KEY, distanceHandler.getDistanceInMeters());
                     }
-
 
                 }else{
                     if(!curCounterString.equals(countDownCounter.getStringValue())){
                         curCounterString = countDownCounter.getStringValue();
-                        broadcast(COUNTER_KEY, countDownCounter.getStringValue());
+                        broadcast(COUNTDOWN_KEY, countDownCounter.getStringValue());
                     }
-
                 }
-
             }
         });
 
         runningThread.start();
     }
 
-    private void broadcast(String action, String text){
+    /** Sets the content text seen in the Notification for this Service. */
+    private void setNotificationContentText(String text){
+
+    }
+
+    private void broadcast(String action, Object data){
         Intent RTReturn = new Intent(action);
-        RTReturn.putExtra(action, text);
+
+        if(data instanceof Integer)
+            RTReturn.putExtra(action, (Integer) data);
+        else if(data instanceof Float)
+            RTReturn.putExtra(action, (Float) data);
+        else if(data instanceof String)
+            RTReturn.putExtra(action, (String) data);
+
         LocalBroadcastManager.getInstance(this).sendBroadcast(RTReturn);
     }
 }

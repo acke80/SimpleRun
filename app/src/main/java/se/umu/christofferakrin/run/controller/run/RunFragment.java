@@ -7,8 +7,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
-import android.location.LocationListener;
-import android.location.LocationManager;
 import android.os.Bundle;
 import android.util.DisplayMetrics;
 import android.view.LayoutInflater;
@@ -20,9 +18,15 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
+import org.jetbrains.annotations.NotNull;
+
 import se.umu.christofferakrin.run.R;
+import se.umu.christofferakrin.run.model.Counter;
+import se.umu.christofferakrin.run.model.DistanceHandler;
+import se.umu.christofferakrin.run.model.RunState;
 
 public class RunFragment extends Fragment{
 
@@ -34,15 +38,19 @@ public class RunFragment extends Fragment{
     private Button pauseButton;
 
     public static final String DISTANCE_KEY = "distance";
+    public static final String COUNTDOWN_KEY = "countdown";
     public static final String COUNTER_KEY = "counter";
+    public static final String STATE_KEY = "state";
 
     private BroadcastReceiver bReceiver;
-    LocalBroadcastManager bManager;
+    private LocalBroadcastManager bManager;
 
+    private RunViewModel runViewModel;
 
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState){
 
+        runViewModel = new ViewModelProvider(requireActivity()).get(RunViewModel.class);
         View root = inflater.inflate(R.layout.fragment_run, container, false);
 
         textViewCounter = root.findViewById(R.id.text_counter);
@@ -52,16 +60,23 @@ public class RunFragment extends Fragment{
         startButton.setOnClickListener(v -> startRun());
 
         stopButton = root.findViewById(R.id.stop_button);
-        stopButton.setOnClickListener(v -> stopRunningService());
+        stopButton.setOnClickListener(v -> stopRun());
 
         pauseButton = root.findViewById(R.id.pause_button);
+        pauseButton.setOnClickListener(v -> pauseRun());
 
         requestFineLocationPermission();
 
         adaptTextSize();
 
-        if(isServiceRunning()){
+        if(isServiceRunning() || runViewModel.isPaused()){
+            textViewCounter.setText(runViewModel.getTimerString());
+            textViewDistance.setText(runViewModel.getDistanceString());
+
             initBroadcastReceiver();
+            startButton.setVisibility(View.GONE);
+            stopButton.setVisibility(View.VISIBLE);
+            pauseButton.setVisibility(View.VISIBLE);
         }
 
         return root;
@@ -75,18 +90,9 @@ public class RunFragment extends Fragment{
             bManager.unregisterReceiver(bReceiver);
     }
 
-    private void startRunningService(){
-        Intent intent = new Intent(getActivity(), RunService.class);
-        getActivity().startService(intent);
-    }
-
-    private void stopRunningService(){
-        bManager.unregisterReceiver(bReceiver);
-        Intent intent = new Intent(getActivity(), RunService.class);
-        getActivity().stopService(intent);
-    }
-
-    /** Checks if the RunService is running. */
+    /** Checks if the RunService is running. Even if android were to destroy our service
+     * unexpectedly, this method would give us the correct answer.
+     * @return true if RunService is running, else false. */
     private boolean isServiceRunning() {
         ActivityManager manager = (ActivityManager) getActivity().getSystemService(Context.ACTIVITY_SERVICE);
         for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
@@ -98,43 +104,91 @@ public class RunFragment extends Fragment{
     }
 
     private void startRun(){
-        if(ActivityCompat.checkSelfPermission(getContext(),
-                Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED){
-            requestFineLocationPermission();
+        if(!checkFineLocationPermission())
             return;
-        }
 
         startButton.setVisibility(View.GONE);
-        stopButton.setVisibility(View.VISIBLE);
-        pauseButton.setVisibility(View.VISIBLE);
 
         initBroadcastReceiver();
-        startRunningService();
+        startService();
+    }
+
+    private void stopRun(){
+        stopService();
+
+        bManager.unregisterReceiver(bReceiver);
+
+        startButton.setVisibility(View.VISIBLE);
+        stopButton.setVisibility(View.GONE);
+        pauseButton.setVisibility(View.GONE);
+
+        textViewDistance.setText("");
+        textViewCounter.setText("");
+
+        runViewModel.resetRunState();
+
+    }
+
+    private void pauseRun(){
+        if(isServiceRunning()){
+            runViewModel.setPaused(true);
+            stopService();
+        }else{
+            runViewModel.setPaused(false);
+            startService();
+        }
+
+    }
+
+    private void startService(){
+        Intent intent = new Intent(getActivity(), RunService.class);
+        intent.putExtra(STATE_KEY, runViewModel.getRunState());
+        getActivity().startService(intent);
+    }
+
+    private void stopService(){
+        Intent intent = new Intent(getActivity(), RunService.class);
+        getActivity().stopService(intent);
+    }
+
+    private boolean checkFineLocationPermission(){
+        if(ActivityCompat.checkSelfPermission(getContext(),
+                Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED){
+
+            requestFineLocationPermission();
+            return false;
+        }
+
+        return true;
     }
 
     private void requestFineLocationPermission(){
-        ActivityCompat.requestPermissions(getActivity(), new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 1);
+        ActivityCompat.requestPermissions(getActivity(),
+                new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 1);
     }
 
-    private void adaptTextSize(){
-        DisplayMetrics metrics = getResources().getDisplayMetrics();
-
-        int DeviceTotalWidth = metrics.widthPixels;
-
-        textViewCounter.setTextSize(DeviceTotalWidth/20f);
-        textViewDistance.setTextSize(DeviceTotalWidth/20f);
-    }
-
+    /** Initializes the BroadcastReceiver used to handle broadcast sent by the RunService. */
     private void initBroadcastReceiver(){
         bReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
-                if(intent.getAction().equals(DISTANCE_KEY)) {
-                    String distance = intent.getStringExtra(DISTANCE_KEY);
-                    textViewDistance.setText(distance);
-                }else if(intent.getAction().equals(COUNTER_KEY)){
-                    String counter = intent.getStringExtra(COUNTER_KEY);
-                    textViewCounter.setText(counter);
+                switch(intent.getAction()){
+                    case DISTANCE_KEY:
+                        float distance = intent.getFloatExtra(DISTANCE_KEY, 0f);
+                        textViewDistance.setText(DistanceHandler.parseDistanceToString(distance));
+                        runViewModel.setDistanceInMeters(distance);
+                        break;
+                    case COUNTDOWN_KEY:
+                        String countdown = intent.getStringExtra(COUNTDOWN_KEY);
+                        textViewCounter.setText(countdown);
+                        break;
+                    case COUNTER_KEY:
+                        int counter = intent.getIntExtra(COUNTER_KEY, 0);
+                        textViewCounter.setText(Counter.parseSecondsToTimerString(counter));
+                        runViewModel.setElapsedSeconds(counter);
+                        stopButton.setVisibility(View.VISIBLE);
+                        pauseButton.setVisibility(View.VISIBLE);
+                        break;
                 }
             }
         };
@@ -142,8 +196,19 @@ public class RunFragment extends Fragment{
         bManager = LocalBroadcastManager.getInstance(getActivity());
         IntentFilter intentFilter = new IntentFilter();
         intentFilter.addAction(DISTANCE_KEY);
+        intentFilter.addAction(COUNTDOWN_KEY);
         intentFilter.addAction(COUNTER_KEY);
         bManager.registerReceiver(bReceiver, intentFilter);
+    }
+
+    /** Adapts text size to size of screen. */
+    private void adaptTextSize(){
+        DisplayMetrics metrics = getResources().getDisplayMetrics();
+
+        int DeviceTotalWidth = metrics.widthPixels;
+
+        textViewCounter.setTextSize(DeviceTotalWidth/20f);
+        textViewDistance.setTextSize(DeviceTotalWidth/20f);
     }
 
 }
