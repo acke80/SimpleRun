@@ -18,15 +18,12 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.fragment.app.Fragment;
-import androidx.lifecycle.ViewModelProvider;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
-import org.jetbrains.annotations.NotNull;
-
 import se.umu.christofferakrin.run.R;
+import se.umu.christofferakrin.run.controller.result.ResultActivity;
 import se.umu.christofferakrin.run.model.Counter;
 import se.umu.christofferakrin.run.model.DistanceHandler;
-import se.umu.christofferakrin.run.model.RunState;
 
 import static se.umu.christofferakrin.run.controller.run.RunService.SET_PAUSE_KEY;
 
@@ -43,17 +40,14 @@ public class RunFragment extends Fragment{
     public static final String DISTANCE_KEY = "distance";
     public static final String COUNTDOWN_KEY = "countdown";
     public static final String COUNTER_KEY = "counter";
-    public static final String STATE_KEY = "state";
 
     private BroadcastReceiver bReceiver;
     private LocalBroadcastManager bManager;
 
-    private RunViewModel runViewModel;
 
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState){
 
-        runViewModel = new ViewModelProvider(requireActivity()).get(RunViewModel.class);
         View root = inflater.inflate(R.layout.fragment_run, container, false);
 
         textViewCounter = root.findViewById(R.id.text_counter);
@@ -76,8 +70,8 @@ public class RunFragment extends Fragment{
         adaptTextSize();
 
         if(isServiceRunning()){
-
             initBroadcastReceiver();
+
             startButton.setVisibility(View.GONE);
             stopButton.setVisibility(View.VISIBLE);
 
@@ -130,24 +124,15 @@ public class RunFragment extends Fragment{
     private void stopRun(){
         stopService();
 
-        bManager.unregisterReceiver(bReceiver);
-
-        startButton.setVisibility(View.VISIBLE);
-        stopButton.setVisibility(View.GONE);
-        pauseButton.setVisibility(View.GONE);
-        resumeButton.setVisibility(View.GONE);
-
-        textViewDistance.setText("");
-        textViewCounter.setText("");
-
-        runViewModel.resetRunState();
+        Intent intent = new Intent(getActivity(), ResultActivity.class);
+        intent.putExtra(DISTANCE_KEY, RunService.getDistanceInMeters());
+        intent.putExtra(COUNTER_KEY, RunService.getElapsedSeconds());
+        startActivity(intent);
 
     }
 
     private void pauseRun(){
-        runViewModel.setPaused(true);
-
-        broadcastOnPause();
+        broadcastOnPause(true);
 
         pauseButton.setVisibility(View.GONE);
         resumeButton.setVisibility(View.VISIBLE);
@@ -155,9 +140,7 @@ public class RunFragment extends Fragment{
     }
 
     private void resumeRun(){
-        runViewModel.setPaused(false);
-
-        broadcastOnPause();
+        broadcastOnPause(false);
 
         resumeButton.setVisibility(View.GONE);
         pauseButton.setVisibility(View.VISIBLE);
@@ -165,7 +148,6 @@ public class RunFragment extends Fragment{
 
     private void startService(){
         Intent intent = new Intent(getActivity(), RunService.class);
-        intent.putExtra(STATE_KEY, runViewModel.getRunState());
         getActivity().startService(intent);
     }
 
@@ -199,7 +181,6 @@ public class RunFragment extends Fragment{
                     case DISTANCE_KEY:
                         float distance = intent.getFloatExtra(DISTANCE_KEY, 0f);
                         textViewDistance.setText(DistanceHandler.parseDistanceToString(distance));
-                        runViewModel.setDistanceInMeters(distance);
                         break;
                     case COUNTDOWN_KEY:
                         String countdown = intent.getStringExtra(COUNTDOWN_KEY);
@@ -208,7 +189,6 @@ public class RunFragment extends Fragment{
                     case COUNTER_KEY:
                         int counter = intent.getIntExtra(COUNTER_KEY, 0);
                         textViewCounter.setText(Counter.parseSecondsToTimerString(counter));
-                        runViewModel.setElapsedSeconds(counter);
                         stopButton.setVisibility(View.VISIBLE);
                         pauseButton.setVisibility(View.VISIBLE);
                         break;
@@ -224,10 +204,9 @@ public class RunFragment extends Fragment{
         bManager.registerReceiver(bReceiver, intentFilter);
     }
 
-    private void broadcastOnPause(){
+    private void broadcastOnPause(boolean paused){
         Intent RTReturn = new Intent(SET_PAUSE_KEY);
-        RTReturn.putExtra(SET_PAUSE_KEY, runViewModel.isPaused());
-
+        RTReturn.putExtra(SET_PAUSE_KEY, paused);
         LocalBroadcastManager.getInstance(getActivity()).sendBroadcast(RTReturn);
     }
 

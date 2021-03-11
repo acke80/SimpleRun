@@ -49,9 +49,6 @@ public class RunService extends Service{
 
     private NotificationCompat.Builder notificationBuilder;
 
-    /* Static variable that only checks if the Service thread is running.
-    * When the Fragment is destroyed, I need to instantly know if the
-    * service is still running it's thread or if it's paused. */
     private static boolean running;
 
     private static RunState curRunState;
@@ -63,7 +60,6 @@ public class RunService extends Service{
     public IBinder onBind(Intent intent){
         return null;
     }
-
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId){
@@ -165,8 +161,8 @@ public class RunService extends Service{
                                 counter.getTimerString()
                         );
 
-                        this.curRunState.setElapsedSeconds(counter.getElapsedSeconds());
-                        this.curRunState.setDistanceInMeters(distanceHandler.getDistanceInMeters());
+                        curRunState.setElapsedSeconds(counter.getElapsedSeconds());
+                        curRunState.setDistanceInMeters(distanceHandler.getDistanceInMeters());
                     }
 
                 }else{
@@ -214,4 +210,16 @@ public class RunService extends Service{
         if(curRunState == null) return "";
         return DistanceHandler.parseDistanceToString(curRunState.getDistanceInMeters());
     }
+
+    public static float getDistanceInMeters(){
+        if(curRunState == null) return 0;
+        return curRunState.getDistanceInMeters();
+    }
+
+    public static int getElapsedSeconds(){
+        if(curRunState == null) return 0;
+        return curRunState.getElapsedSeconds();
+    }
+
+
 }
