@@ -47,7 +47,7 @@
             android:layout_width="128dp"
             android:layout_height="64dp"
             android:id="@+id/start_button"
-            android:backgroundTint="@color/purple_200"
+            android:backgroundTint="@color/green_200"
             android:background="@drawable/rounded_button"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
@@ -74,12 +74,27 @@
             app:icon="@drawable/ic_baseline_pause_24"
             android:layout_width="wrap_content"
             android:layout_height="56dp"
-            android:backgroundTint="@color/purple_700"
+            android:backgroundTint="@color/green_700"
             android:id="@+id/pause_button"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toEndOf="@+id/start_button"
             android:layout_marginBottom="128dp"
             android:visibility="gone" />
+
+    <Button
+            android:text="Resume"
+            style="style/Widget.MaterialComponents.Button.Icon"
+            app:icon="@drawable/ic_baseline_play_arrow_24"
+            android:layout_width="wrap_content"
+            android:layout_height="56dp"
+            android:backgroundTint="@color/green_500"
+            android:id="@+id/resume_button"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@+id/start_button"
+            android:layout_marginBottom="128dp"
+            android:visibility="gone" />
+
 
 </androidx.constraintlayout.widget.ConstraintLayout>

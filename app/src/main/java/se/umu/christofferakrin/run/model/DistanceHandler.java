@@ -24,7 +24,10 @@ public class DistanceHandler{
     }
 
     public String getDistanceAsString(){
-        return parseDistanceToString(distanceInMeters);
+        String dist = parseDistanceToString(distanceInMeters);
+
+        if(dist == null) return "";
+        else return dist;
     }
 
     public void setLocation(Location location){

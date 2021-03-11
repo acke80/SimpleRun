@@ -28,6 +28,8 @@ import se.umu.christofferakrin.run.model.Counter;
 import se.umu.christofferakrin.run.model.DistanceHandler;
 import se.umu.christofferakrin.run.model.RunState;
 
+import static se.umu.christofferakrin.run.controller.run.RunService.SET_PAUSE_KEY;
+
 public class RunFragment extends Fragment{
 
     private TextView textViewCounter;
@@ -36,6 +38,7 @@ public class RunFragment extends Fragment{
     private Button startButton;
     private Button stopButton;
     private Button pauseButton;
+    private Button resumeButton;
 
     public static final String DISTANCE_KEY = "distance";
     public static final String COUNTDOWN_KEY = "countdown";
@@ -65,18 +68,29 @@ public class RunFragment extends Fragment{
         pauseButton = root.findViewById(R.id.pause_button);
         pauseButton.setOnClickListener(v -> pauseRun());
 
+        resumeButton = root.findViewById(R.id.resume_button);
+        resumeButton.setOnClickListener(v -> resumeRun());
+
         requestFineLocationPermission();
 
         adaptTextSize();
 
-        if(isServiceRunning() || runViewModel.isPaused()){
-            textViewCounter.setText(runViewModel.getTimerString());
-            textViewDistance.setText(runViewModel.getDistanceString());
+        if(isServiceRunning()){
 
             initBroadcastReceiver();
             startButton.setVisibility(View.GONE);
             stopButton.setVisibility(View.VISIBLE);
-            pauseButton.setVisibility(View.VISIBLE);
+
+            textViewCounter.setText(RunService.getTimerString());
+            textViewDistance.setText(RunService.getDistanceString());
+
+            if(RunService.isRunning()){
+                pauseButton.setVisibility(View.VISIBLE);
+                resumeButton.setVisibility(View.GONE);
+            }else{
+                pauseButton.setVisibility(View.GONE);
+                resumeButton.setVisibility(View.VISIBLE);
+            }
         }
 
         return root;
@@ -121,6 +135,7 @@ public class RunFragment extends Fragment{
         startButton.setVisibility(View.VISIBLE);
         stopButton.setVisibility(View.GONE);
         pauseButton.setVisibility(View.GONE);
+        resumeButton.setVisibility(View.GONE);
 
         textViewDistance.setText("");
         textViewCounter.setText("");
@@ -130,14 +145,22 @@ public class RunFragment extends Fragment{
     }
 
     private void pauseRun(){
-        if(isServiceRunning()){
-            runViewModel.setPaused(true);
-            stopService();
-        }else{
-            runViewModel.setPaused(false);
-            startService();
-        }
+        runViewModel.setPaused(true);
 
+        broadcastOnPause();
+
+        pauseButton.setVisibility(View.GONE);
+        resumeButton.setVisibility(View.VISIBLE);
+
+    }
+
+    private void resumeRun(){
+        runViewModel.setPaused(false);
+
+        broadcastOnPause();
+
+        resumeButton.setVisibility(View.GONE);
+        pauseButton.setVisibility(View.VISIBLE);
     }
 
     private void startService(){
@@ -199,6 +222,13 @@ public class RunFragment extends Fragment{
         intentFilter.addAction(COUNTDOWN_KEY);
         intentFilter.addAction(COUNTER_KEY);
         bManager.registerReceiver(bReceiver, intentFilter);
+    }
+
+    private void broadcastOnPause(){
+        Intent RTReturn = new Intent(SET_PAUSE_KEY);
+        RTReturn.putExtra(SET_PAUSE_KEY, runViewModel.isPaused());
+
+        LocalBroadcastManager.getInstance(getActivity()).sendBroadcast(RTReturn);
     }
 
     /** Adapts text size to size of screen. */

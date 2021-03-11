@@ -1,11 +1,13 @@
 package se.umu.christofferakrin.run.controller.run;
 
 import android.annotation.SuppressLint;
-import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.IBinder;
@@ -26,7 +28,6 @@ import static se.umu.christofferakrin.run.RunApp.CHANNEL_ID;
 import static se.umu.christofferakrin.run.controller.run.RunFragment.COUNTDOWN_KEY;
 import static se.umu.christofferakrin.run.controller.run.RunFragment.COUNTER_KEY;
 import static se.umu.christofferakrin.run.controller.run.RunFragment.DISTANCE_KEY;
-import static se.umu.christofferakrin.run.controller.run.RunFragment.STATE_KEY;
 
 
 public class RunService extends Service{
@@ -40,12 +41,22 @@ public class RunService extends Service{
 
     private Thread runningThread;
 
-    /* Store the current values. We only want to broadcast when something changes. */
+    private BroadcastReceiver bReceiver;
+    private LocalBroadcastManager bManager;
+
+    /* Store the current value. We only need to broadcast when the counter changes (1/sec). */
     private String curCounterString = "";
 
-    private boolean running;
+    private NotificationCompat.Builder notificationBuilder;
 
-    NotificationCompat.Builder notificationBuilder;
+    /* Static variable that only checks if the Service thread is running.
+    * When the Fragment is destroyed, I need to instantly know if the
+    * service is still running it's thread or if it's paused. */
+    private static boolean running;
+
+    private static RunState curRunState;
+
+    public static final String SET_PAUSE_KEY = "set_pause";
 
     @Nullable
     @Override
@@ -56,13 +67,36 @@ public class RunService extends Service{
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId){
-
-        startRun(intent.getParcelableExtra(STATE_KEY));
+        curRunState = new RunState();
+        startRun(curRunState);
 
         Intent notificationIntent = new Intent(this, MainActivity.class);
         PendingIntent pendingIntent = PendingIntent.getActivity(this,
                 0, notificationIntent, 0);
 
+        bReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                if(intent.getAction().equals(SET_PAUSE_KEY)){
+                    boolean pause = intent.getBooleanExtra(SET_PAUSE_KEY, false);
+                    if(pause){
+                        running = false;
+                        try{
+                            runningThread.join();
+                        }catch(InterruptedException e){
+                            e.printStackTrace();
+                        }
+                        locationManager.removeUpdates(locationListener);
+                    }else{
+                        startRun(curRunState);
+                    }
+                }
+            }
+        };
+        bManager = LocalBroadcastManager.getInstance(this);
+        IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction(SET_PAUSE_KEY);
+        bManager.registerReceiver(bReceiver, intentFilter);
 
         /* This is deprecated, but I don't know how I can change the content of the
         * notification without accessing the builder instance. */
@@ -100,10 +134,7 @@ public class RunService extends Service{
      * before it is started. */
     @SuppressLint("MissingPermission")
     private void startRun(RunState runState){
-        if(runState == null || runState.getElapsedSeconds() > 0)
-            countDownCounter = new CountDownCounter(0);
-        else
-            countDownCounter = new CountDownCounter(3);
+        countDownCounter = new CountDownCounter(3);
 
         counter = new Counter(runState.getElapsedSeconds());
         distanceHandler = new DistanceHandler(runState.getDistanceInMeters());
@@ -114,7 +145,6 @@ public class RunService extends Service{
 
         locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 2500,
                 5, locationListener);
-
 
         runningThread = new Thread(() -> {
             running = true;
@@ -134,6 +164,9 @@ public class RunService extends Service{
                                 "Distance: " + distanceHandler.getDistanceAsString(),
                                 counter.getTimerString()
                         );
+
+                        this.curRunState.setElapsedSeconds(counter.getElapsedSeconds());
+                        this.curRunState.setDistanceInMeters(distanceHandler.getDistanceInMeters());
                     }
 
                 }else{
@@ -166,5 +199,19 @@ public class RunService extends Service{
             RTReturn.putExtra(action, (String) data);
 
         LocalBroadcastManager.getInstance(this).sendBroadcast(RTReturn);
+    }
+
+    public static boolean isRunning(){
+        return running;
+    }
+
+    public static String getTimerString(){
+        if(curRunState == null) return "";
+        return Counter.parseSecondsToTimerString(curRunState.getElapsedSeconds());
+    }
+
+    public static String getDistanceString(){
+        if(curRunState == null) return "";
+        return DistanceHandler.parseDistanceToString(curRunState.getDistanceInMeters());
     }
 }

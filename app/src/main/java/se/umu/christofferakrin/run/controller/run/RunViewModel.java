@@ -24,6 +24,7 @@ public class RunViewModel extends ViewModel{
             runState = stateHandle.get(STATE_KEY);
         }else{
             runState = new RunState();
+            setPaused(true);
         }
 
         saveState();
