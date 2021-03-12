@@ -22,12 +22,14 @@ import se.umu.christofferakrin.run.R;
 import se.umu.christofferakrin.run.model.CountDownCounter;
 import se.umu.christofferakrin.run.model.Counter;
 import se.umu.christofferakrin.run.model.DistanceHandler;
+import se.umu.christofferakrin.run.model.Metrics;
 import se.umu.christofferakrin.run.model.RunState;
 
 import static se.umu.christofferakrin.run.RunApp.CHANNEL_ID;
 import static se.umu.christofferakrin.run.controller.run.RunFragment.COUNTDOWN_KEY;
 import static se.umu.christofferakrin.run.controller.run.RunFragment.COUNTER_KEY;
 import static se.umu.christofferakrin.run.controller.run.RunFragment.DISTANCE_KEY;
+import static se.umu.christofferakrin.run.controller.run.RunFragment.TEMPO_KEY;
 
 
 public class RunService extends Service{
@@ -98,7 +100,7 @@ public class RunService extends Service{
         * notification without accessing the builder instance. */
         notificationBuilder = new NotificationCompat.Builder(this, CHANNEL_ID)
                 .setContentText("")
-                .setContentTitle("Running")
+                .setContentTitle("Starting...")
                 .setSmallIcon(R.drawable.run)
                 .setContentIntent(pendingIntent)
                 .setNotificationSilent()
@@ -153,16 +155,23 @@ public class RunService extends Service{
                     if(!curCounterString.equals(counter.getTimerString())){
                         curCounterString = counter.getTimerString();
 
+                        String tempo = Metrics.getTempoString(
+                                counter.getElapsedSeconds(),
+                                distanceHandler.getDistanceInMeters());
+
                         broadcast(COUNTER_KEY, counter.getElapsedSeconds());
                         broadcast(DISTANCE_KEY, distanceHandler.getDistanceInMeters());
+                        broadcast(TEMPO_KEY, tempo);
 
                         setNotificationContentText(
                                 "Distance: " + distanceHandler.getDistanceAsString(),
-                                counter.getTimerString()
-                        );
+                                counter.getTimerString() + "  |  " + tempo);
 
                         curRunState.setElapsedSeconds(counter.getElapsedSeconds());
                         curRunState.setDistanceInMeters(distanceHandler.getDistanceInMeters());
+                        curRunState.setTempo(
+                                Metrics.getTempo(counter.getElapsedSeconds(),
+                                distanceHandler.getDistanceInMeters()));
                     }
 
                 }else{
@@ -211,6 +220,11 @@ public class RunService extends Service{
         return DistanceHandler.parseDistanceToString(curRunState.getDistanceInMeters());
     }
 
+    public static String getTempoString(){
+        if(curRunState == null) return "";
+        return Metrics.parseTempoToString(curRunState.getTempo());
+    }
+
     public static float getDistanceInMeters(){
         if(curRunState == null) return 0;
         return curRunState.getDistanceInMeters();
@@ -220,6 +234,5 @@ public class RunService extends Service{
         if(curRunState == null) return 0;
         return curRunState.getElapsedSeconds();
     }
-
 
 }

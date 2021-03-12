@@ -14,66 +14,50 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             android:orientation="vertical"
+            android:gravity="center"
             android:layout_marginTop="32dp">
 
         <TextView
-                android:id="@+id/text_counter"
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textAlignment="center"
-                android:textSize="54sp"
-                app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintHorizontal_bias="0.0"
-                app:layout_constraintBottom_toTopOf="@+id/start_button" />
-
-        <TextView
                 android:id="@+id/text_distance"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:textAlignment="center"
-                android:fontFamily="sans-serif-light"
-                android:textSize="54sp"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintHorizontal_bias="0.0"
-                app:layout_constraintBottom_toTopOf="@+id/start_button" />
+                android:paddingBottom="20dp" />
 
         <TextView
-                android:id="@+id/text_avgspeed"
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textAlignment="center"
+                android:id="@+id/text_counter"
                 android:fontFamily="sans-serif-light"
-                android:textSize="32sp"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintHorizontal_bias="0.0"
-                app:layout_constraintBottom_toTopOf="@+id/start_button" />
+                android:paddingBottom="10dp" />
+
+        <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/text_tempo"
+                android:fontFamily="sans-serif-light" />
 
     </LinearLayout>
 
 
-    <Button
+    <androidx.appcompat.widget.AppCompatButton
             android:text="Start"
-            android:layout_width="128dp"
-            android:layout_height="64dp"
+            android:layout_width="256dp"
+            android:layout_height="48dp"
             android:id="@+id/start_button"
-            android:backgroundTint="@color/green_200"
-            android:background="@drawable/rounded_button"
+            android:background="@drawable/start_button"
+            android:textColor="@color/white"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            android:layout_marginBottom="128dp" />
+            android:layout_marginBottom="86dp" />
 
-    <Button
+    <androidx.appcompat.widget.AppCompatButton
             android:text="Stop"
             style="style/Widget.MaterialComponents.Button.Icon"
-            app:icon="@drawable/ic_baseline_stop_24"
             android:layout_width="wrap_content"
-            android:layout_height="56dp"
-            android:backgroundTint="@color/red"
+            android:layout_height="48dp"
+            android:background="@drawable/stop_button"
+            android:textColor="@color/white"
             android:id="@+id/stop_button"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"
@@ -81,13 +65,13 @@
             android:layout_marginBottom="128dp"
             android:visibility="gone" />
 
-    <Button
+    <androidx.appcompat.widget.AppCompatButton
             android:text="Pause"
             style="style/Widget.MaterialComponents.Button.Icon"
-            app:icon="@drawable/ic_baseline_pause_24"
             android:layout_width="wrap_content"
-            android:layout_height="56dp"
-            android:backgroundTint="@color/green_700"
+            android:layout_height="48dp"
+            android:background="@drawable/pause_button"
+            android:textColor="@color/white"
             android:id="@+id/pause_button"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
@@ -95,13 +79,13 @@
             android:layout_marginBottom="128dp"
             android:visibility="gone" />
 
-    <Button
+    <androidx.appcompat.widget.AppCompatButton
             android:text="Resume"
             style="style/Widget.MaterialComponents.Button.Icon"
-            app:icon="@drawable/ic_baseline_play_arrow_24"
             android:layout_width="wrap_content"
-            android:layout_height="56dp"
-            android:backgroundTint="@color/green_500"
+            android:layout_height="48dp"
+            android:background="@drawable/pause_button"
+            android:textColor="@color/white"
             android:id="@+id/resume_button"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"

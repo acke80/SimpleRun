@@ -1,12 +1,11 @@
 package se.umu.christofferakrin.run.model;
 
-import android.os.Parcel;
-import android.os.Parcelable;
 
 public class RunState{
 
     private int elapsedSeconds;
     private float distanceInMeters;
+    private float tempo;
 
     public RunState(){
     }
@@ -25,11 +24,22 @@ public class RunState{
         distanceInMeters = distance;
     }
 
+    public void setTempo(float tempo){
+        if(tempo < 0)
+            throw new IllegalArgumentException("Tempo can't be negative.");
+
+        this.tempo = tempo;
+    }
+
     public int getElapsedSeconds(){
         return elapsedSeconds;
     }
 
     public float getDistanceInMeters(){
         return distanceInMeters;
+    }
+
+    public float getTempo(){
+        return tempo;
     }
 }

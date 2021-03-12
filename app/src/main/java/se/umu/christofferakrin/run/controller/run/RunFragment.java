@@ -17,6 +17,7 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
@@ -24,6 +25,7 @@ import se.umu.christofferakrin.run.R;
 import se.umu.christofferakrin.run.controller.result.ResultActivity;
 import se.umu.christofferakrin.run.model.Counter;
 import se.umu.christofferakrin.run.model.DistanceHandler;
+import se.umu.christofferakrin.run.model.Metrics;
 
 import static se.umu.christofferakrin.run.controller.run.RunService.SET_PAUSE_KEY;
 
@@ -31,6 +33,7 @@ public class RunFragment extends Fragment{
 
     private TextView textViewCounter;
     private TextView textViewDistance;
+    private TextView textViewTempo;
 
     private Button startButton;
     private Button stopButton;
@@ -40,6 +43,7 @@ public class RunFragment extends Fragment{
     public static final String DISTANCE_KEY = "distance";
     public static final String COUNTDOWN_KEY = "countdown";
     public static final String COUNTER_KEY = "counter";
+    public static final String TEMPO_KEY = "tempo";
 
     private BroadcastReceiver bReceiver;
     private LocalBroadcastManager bManager;
@@ -52,6 +56,7 @@ public class RunFragment extends Fragment{
 
         textViewCounter = root.findViewById(R.id.text_counter);
         textViewDistance = root.findViewById(R.id.text_distance);
+        textViewTempo = root.findViewById(R.id.text_tempo);
 
         startButton = root.findViewById(R.id.start_button);
         startButton.setOnClickListener(v -> startRun());
@@ -77,6 +82,7 @@ public class RunFragment extends Fragment{
 
             textViewCounter.setText(RunService.getTimerString());
             textViewDistance.setText(RunService.getDistanceString());
+            textViewTempo.setText(RunService.getTempoString());
 
             if(RunService.isRunning()){
                 pauseButton.setVisibility(View.VISIBLE);
@@ -185,12 +191,24 @@ public class RunFragment extends Fragment{
                     case COUNTDOWN_KEY:
                         String countdown = intent.getStringExtra(COUNTDOWN_KEY);
                         textViewCounter.setText(countdown);
+
+                        if(countdown.equals("Go!"))
+                            textViewCounter.setTextColor(
+                                    ContextCompat.getColor(context, R.color.green_700));
+
+                        textViewDistance.setText("");
+                        textViewTempo.setText("");
                         break;
                     case COUNTER_KEY:
                         int counter = intent.getIntExtra(COUNTER_KEY, 0);
                         textViewCounter.setText(Counter.parseSecondsToTimerString(counter));
+                        textViewCounter.setTextColor(ContextCompat.getColor(context, R.color.gray));
                         stopButton.setVisibility(View.VISIBLE);
                         pauseButton.setVisibility(View.VISIBLE);
+                        break;
+                    case TEMPO_KEY:
+                        String tempo = intent.getStringExtra(TEMPO_KEY);
+                        textViewTempo.setText(tempo);
                         break;
                 }
             }
@@ -201,6 +219,7 @@ public class RunFragment extends Fragment{
         intentFilter.addAction(DISTANCE_KEY);
         intentFilter.addAction(COUNTDOWN_KEY);
         intentFilter.addAction(COUNTER_KEY);
+        intentFilter.addAction(TEMPO_KEY);
         bManager.registerReceiver(bReceiver, intentFilter);
     }
 
@@ -216,8 +235,9 @@ public class RunFragment extends Fragment{
 
         int DeviceTotalWidth = metrics.widthPixels;
 
-        textViewCounter.setTextSize(DeviceTotalWidth/20f);
         textViewDistance.setTextSize(DeviceTotalWidth/20f);
+        textViewCounter.setTextSize(DeviceTotalWidth/25f);
+        textViewTempo.setTextSize(DeviceTotalWidth/35f);
     }
 
 }
