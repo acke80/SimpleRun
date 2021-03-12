@@ -10,15 +10,16 @@ import android.widget.TextView;
 import se.umu.christofferakrin.run.R;
 import se.umu.christofferakrin.run.model.Counter;
 import se.umu.christofferakrin.run.model.DistanceHandler;
-import se.umu.christofferakrin.run.model.Metrics;
 
 import static se.umu.christofferakrin.run.controller.run.RunFragment.COUNTER_KEY;
 import static se.umu.christofferakrin.run.controller.run.RunFragment.DISTANCE_KEY;
+import static se.umu.christofferakrin.run.controller.run.RunFragment.TEMPO_KEY;
 
 public class ResultActivity extends AppCompatActivity{
 
     private float distanceInMeters;
     private int elapsedSeconds;
+    private float tempo;
 
     private TextView textViewDistance;
     private TextView textViewCounter;
@@ -36,6 +37,7 @@ public class ResultActivity extends AppCompatActivity{
         Intent intent = getIntent();
         distanceInMeters = intent.getFloatExtra(DISTANCE_KEY, 0f);
         elapsedSeconds = intent.getIntExtra(COUNTER_KEY, 0);
+        tempo = intent.getFloatExtra(TEMPO_KEY, 0f);
 
         textViewDistance = findViewById(R.id.text_distance);
         textViewDistance.setText(DistanceHandler.parseDistanceToString(distanceInMeters));
@@ -44,7 +46,7 @@ public class ResultActivity extends AppCompatActivity{
         textViewCounter.setText(Counter.parseSecondsToTimerString(elapsedSeconds));
 
         textViewTempo = findViewById(R.id.text_tempo);
-        textViewTempo.setText(Metrics.getTempoString(elapsedSeconds, distanceInMeters));
+        textViewTempo.setText(DistanceHandler.parseTempoToString(tempo));
 
         adaptTextSize();
 

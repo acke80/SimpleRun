@@ -9,6 +9,8 @@ import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
+import com.google.android.material.bottomnavigation.BottomNavigationView;
+
 import se.umu.christofferakrin.run.R;
 
 public class HistoryFragment extends Fragment{
@@ -20,6 +22,9 @@ public class HistoryFragment extends Fragment{
         historyViewModel =
                 new ViewModelProvider(this).get(HistoryViewModel.class);
         View root = inflater.inflate(R.layout.fragment_history, container, false);
+
+        BottomNavigationView navView = getActivity().findViewById(R.id.nav_view);
+        navView.setVisibility(View.VISIBLE);
 
         return root;
     }

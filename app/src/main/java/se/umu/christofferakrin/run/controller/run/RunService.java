@@ -22,7 +22,6 @@ import se.umu.christofferakrin.run.R;
 import se.umu.christofferakrin.run.model.CountDownCounter;
 import se.umu.christofferakrin.run.model.Counter;
 import se.umu.christofferakrin.run.model.DistanceHandler;
-import se.umu.christofferakrin.run.model.Metrics;
 import se.umu.christofferakrin.run.model.RunState;
 
 import static se.umu.christofferakrin.run.RunApp.CHANNEL_ID;
@@ -72,6 +71,26 @@ public class RunService extends Service{
         PendingIntent pendingIntent = PendingIntent.getActivity(this,
                 0, notificationIntent, 0);
 
+        initBroadcastReceiver();
+
+        /* This is deprecated, but I don't know how I can change the content of the
+        * notification without accessing the builder instance. */
+        notificationBuilder = new NotificationCompat.Builder(this, CHANNEL_ID)
+                .setContentText("")
+                .setContentTitle("Starting...")
+                .setSmallIcon(R.drawable.run)
+                .setContentIntent(pendingIntent)
+                .setNotificationSilent()
+                .setOnlyAlertOnce(true);
+
+        startForeground(1, notificationBuilder.build());
+
+        return START_NOT_STICKY;
+    }
+
+    /** Initializes the BroadcastReceiver. The RunFragment broadcasts if the RunService
+     *  should pause or resume it's running process. */
+    private void initBroadcastReceiver(){
         bReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
@@ -95,22 +114,7 @@ public class RunService extends Service{
         IntentFilter intentFilter = new IntentFilter();
         intentFilter.addAction(SET_PAUSE_KEY);
         bManager.registerReceiver(bReceiver, intentFilter);
-
-        /* This is deprecated, but I don't know how I can change the content of the
-        * notification without accessing the builder instance. */
-        notificationBuilder = new NotificationCompat.Builder(this, CHANNEL_ID)
-                .setContentText("")
-                .setContentTitle("Starting...")
-                .setSmallIcon(R.drawable.run)
-                .setContentIntent(pendingIntent)
-                .setNotificationSilent()
-                .setOnlyAlertOnce(true);
-
-        startForeground(1, notificationBuilder.build());
-
-        return START_NOT_STICKY;
     }
-
 
     @Override
     public void onDestroy(){
@@ -155,9 +159,7 @@ public class RunService extends Service{
                     if(!curCounterString.equals(counter.getTimerString())){
                         curCounterString = counter.getTimerString();
 
-                        String tempo = Metrics.getTempoString(
-                                counter.getElapsedSeconds(),
-                                distanceHandler.getDistanceInMeters());
+                        String tempo = distanceHandler.getTempoString(counter.getElapsedSeconds());
 
                         broadcast(COUNTER_KEY, counter.getElapsedSeconds());
                         broadcast(DISTANCE_KEY, distanceHandler.getDistanceInMeters());
@@ -169,9 +171,7 @@ public class RunService extends Service{
 
                         curRunState.setElapsedSeconds(counter.getElapsedSeconds());
                         curRunState.setDistanceInMeters(distanceHandler.getDistanceInMeters());
-                        curRunState.setTempo(
-                                Metrics.getTempo(counter.getElapsedSeconds(),
-                                distanceHandler.getDistanceInMeters()));
+                        curRunState.setTempo(distanceHandler.getTempo(counter.getElapsedSeconds()));
                     }
 
                 }else{
@@ -193,6 +193,7 @@ public class RunService extends Service{
         getSystemService(NotificationManager.class).notify(1, notificationBuilder.build());
     }
 
+    /** Broadcast new information to the RunFragment. */
     private void broadcast(String action, Object data){
         Intent RTReturn = new Intent(action);
 
@@ -222,7 +223,7 @@ public class RunService extends Service{
 
     public static String getTempoString(){
         if(curRunState == null) return "";
-        return Metrics.parseTempoToString(curRunState.getTempo());
+        return DistanceHandler.parseTempoToString(curRunState.getTempo());
     }
 
     public static float getDistanceInMeters(){
@@ -233,6 +234,11 @@ public class RunService extends Service{
     public static int getElapsedSeconds(){
         if(curRunState == null) return 0;
         return curRunState.getElapsedSeconds();
+    }
+
+    public static float getTempo(){
+        if(curRunState == null) return 0;
+        return curRunState.getTempo();
     }
 
 }

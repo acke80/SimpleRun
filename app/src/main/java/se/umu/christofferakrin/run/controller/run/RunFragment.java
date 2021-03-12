@@ -21,11 +21,12 @@ import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
+import com.google.android.material.bottomnavigation.BottomNavigationView;
+
 import se.umu.christofferakrin.run.R;
 import se.umu.christofferakrin.run.controller.result.ResultActivity;
 import se.umu.christofferakrin.run.model.Counter;
 import se.umu.christofferakrin.run.model.DistanceHandler;
-import se.umu.christofferakrin.run.model.Metrics;
 
 import static se.umu.christofferakrin.run.controller.run.RunService.SET_PAUSE_KEY;
 
@@ -39,6 +40,8 @@ public class RunFragment extends Fragment{
     private Button stopButton;
     private Button pauseButton;
     private Button resumeButton;
+
+    private BottomNavigationView navView;
 
     public static final String DISTANCE_KEY = "distance";
     public static final String COUNTDOWN_KEY = "countdown";
@@ -54,6 +57,9 @@ public class RunFragment extends Fragment{
 
         View root = inflater.inflate(R.layout.fragment_run, container, false);
 
+        navView = getActivity().findViewById(R.id.nav_view);
+        navView.setVisibility(View.VISIBLE);
+
         textViewCounter = root.findViewById(R.id.text_counter);
         textViewDistance = root.findViewById(R.id.text_distance);
         textViewTempo = root.findViewById(R.id.text_tempo);
@@ -62,7 +68,10 @@ public class RunFragment extends Fragment{
         startButton.setOnClickListener(v -> startRun());
 
         stopButton = root.findViewById(R.id.stop_button);
-        stopButton.setOnClickListener(v -> stopRun());
+        stopButton.setOnClickListener(v -> {
+            stopRun();
+            toResultActivity();
+        });
 
         pauseButton = root.findViewById(R.id.pause_button);
         pauseButton.setOnClickListener(v -> pauseRun());
@@ -74,8 +83,23 @@ public class RunFragment extends Fragment{
 
         adaptTextSize();
 
+        updateView();
+
+        return root;
+    }
+
+    @Override
+    public void onResume(){
+        super.onResume();
+
+        updateView();
+    }
+
+    private void updateView(){
         if(isServiceRunning()){
             initBroadcastReceiver();
+
+            navView.setVisibility(View.GONE);
 
             startButton.setVisibility(View.GONE);
             stopButton.setVisibility(View.VISIBLE);
@@ -91,9 +115,16 @@ public class RunFragment extends Fragment{
                 pauseButton.setVisibility(View.GONE);
                 resumeButton.setVisibility(View.VISIBLE);
             }
+        }else{
+            startButton.setVisibility(View.VISIBLE);
+            pauseButton.setVisibility(View.GONE);
+            stopButton.setVisibility(View.GONE);
+            resumeButton.setVisibility(View.GONE);
+            textViewDistance.setText("");
+            textViewCounter.setText("");
+            textViewTempo.setText("");
+            navView.setVisibility(View.VISIBLE);
         }
-
-        return root;
     }
 
     @Override
@@ -108,8 +139,11 @@ public class RunFragment extends Fragment{
      * unexpectedly, this method would give us the correct answer.
      * @return true if RunService is running, else false. */
     private boolean isServiceRunning() {
-        ActivityManager manager = (ActivityManager) getActivity().getSystemService(Context.ACTIVITY_SERVICE);
-        for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
+        ActivityManager manager =
+                (ActivityManager) getActivity().getSystemService(Context.ACTIVITY_SERVICE);
+
+        for (ActivityManager.RunningServiceInfo service :
+                manager.getRunningServices(Integer.MAX_VALUE)) {
             if (RunService.class.getName().equals(service.service.getClassName())) {
                 return true;
             }
@@ -123,18 +157,22 @@ public class RunFragment extends Fragment{
 
         startButton.setVisibility(View.GONE);
 
+        navView.setVisibility(View.GONE);
+
         initBroadcastReceiver();
         startService();
     }
 
     private void stopRun(){
         stopService();
+    }
 
+    private void toResultActivity(){
         Intent intent = new Intent(getActivity(), ResultActivity.class);
         intent.putExtra(DISTANCE_KEY, RunService.getDistanceInMeters());
         intent.putExtra(COUNTER_KEY, RunService.getElapsedSeconds());
+        intent.putExtra(TEMPO_KEY, RunService.getTempo());
         startActivity(intent);
-
     }
 
     private void pauseRun(){
@@ -142,7 +180,6 @@ public class RunFragment extends Fragment{
 
         pauseButton.setVisibility(View.GONE);
         resumeButton.setVisibility(View.VISIBLE);
-
     }
 
     private void resumeRun(){
@@ -223,6 +260,8 @@ public class RunFragment extends Fragment{
         bManager.registerReceiver(bReceiver, intentFilter);
     }
 
+    /** Broadcast to the RunService that we want to pause/resume the service's running proccess.
+     * This does NOT stop the RunService, but signals that we do/don't want new information. */
     private void broadcastOnPause(boolean paused){
         Intent RTReturn = new Intent(SET_PAUSE_KEY);
         RTReturn.putExtra(SET_PAUSE_KEY, paused);

@@ -9,7 +9,12 @@ import java.text.DecimalFormat;
 /** Handles the distance travelled by the phone. */
 public class DistanceHandler{
 
-    private final float MAX_NOISE = 0.1f; /* Minimum distance for new location in meters. */
+    private static final DecimalFormat df = new DecimalFormat("#.##");
+    private static final float MAX_NOISE = 0.1f; /* Minimum distance for new location in meters. */
+
+    static {
+        df.setRoundingMode(RoundingMode.FLOOR);
+    }
 
     private float distanceInMeters;
     private Location curLocation;
@@ -28,6 +33,21 @@ public class DistanceHandler{
 
         if(dist == null) return "";
         else return dist;
+    }
+
+    /** @return String for tempo in min/km. */
+    public String getTempoString(int seconds){
+        return df.format(getTempo(seconds)) + " min/km";
+    }
+
+    /** @return Float for tempo in min/km. */
+    public float getTempo(int seconds){
+        float tempo = 0f;
+
+        if(distanceInMeters > 0)
+            tempo = ((float) seconds / 60f) / (distanceInMeters / 1000f);
+
+        return tempo;
     }
 
     public void setLocation(Location location){
@@ -54,10 +74,11 @@ public class DistanceHandler{
         if(distance < 1000)
             return (int) distance + " m";
 
-        DecimalFormat decimalFormat = new DecimalFormat("#.##");
-        decimalFormat.setRoundingMode(RoundingMode.FLOOR);
+        return df.format(distance / 1000) + " km";
+    }
 
-        return decimalFormat.format(distance / 1000) + " km";
+    public static String parseTempoToString(float tempo){
+        return df.format(tempo) + " min/km";
     }
 
 }
