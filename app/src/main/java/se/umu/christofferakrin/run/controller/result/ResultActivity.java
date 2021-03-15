@@ -7,9 +7,14 @@ import android.os.Bundle;
 import android.util.DisplayMetrics;
 import android.widget.TextView;
 
+import java.util.ArrayList;
+
 import se.umu.christofferakrin.run.R;
+import se.umu.christofferakrin.run.RunApp;
+import se.umu.christofferakrin.run.database.RunDatabase;
 import se.umu.christofferakrin.run.model.Counter;
 import se.umu.christofferakrin.run.model.DistanceHandler;
+import se.umu.christofferakrin.run.model.RunEntity;
 
 import static se.umu.christofferakrin.run.controller.run.RunFragment.COUNTER_KEY;
 import static se.umu.christofferakrin.run.controller.run.RunFragment.DISTANCE_KEY;
@@ -49,6 +54,7 @@ public class ResultActivity extends AppCompatActivity{
         textViewTempo.setText(DistanceHandler.parseTempoToString(tempo));
 
         adaptTextSize();
+
 
     }
 

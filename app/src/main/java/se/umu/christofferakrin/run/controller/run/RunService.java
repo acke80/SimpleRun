@@ -19,9 +19,11 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import se.umu.christofferakrin.run.MainActivity;
 import se.umu.christofferakrin.run.R;
+import se.umu.christofferakrin.run.RunApp;
 import se.umu.christofferakrin.run.model.CountDownCounter;
 import se.umu.christofferakrin.run.model.Counter;
 import se.umu.christofferakrin.run.model.DistanceHandler;
+import se.umu.christofferakrin.run.model.RunEntity;
 import se.umu.christofferakrin.run.model.RunState;
 
 import static se.umu.christofferakrin.run.RunApp.CHANNEL_ID;
@@ -118,9 +120,9 @@ public class RunService extends Service{
 
     @Override
     public void onDestroy(){
-        super.onDestroy();
-
         running = false;
+
+        locationManager.removeUpdates(locationListener);
 
         try{
             runningThread.join();
@@ -128,7 +130,16 @@ public class RunService extends Service{
             e.printStackTrace();
         }
 
-        locationManager.removeUpdates(locationListener);
+        /* Possibly store RunState to database. */
+        if(curRunState != null &&
+                curRunState.getElapsedSeconds() > 0 && curRunState.getDistanceInMeters() > 1){
+
+            RunEntity runEntity = new RunEntity(curRunState);
+            new Thread(()-> RunApp.getDatabase().runEntityDao().insertAll(runEntity)).start();
+
+        }
+
+        super.onDestroy();
     }
 
     /** Starts the Location listener and the run thread which handles broadcasting.

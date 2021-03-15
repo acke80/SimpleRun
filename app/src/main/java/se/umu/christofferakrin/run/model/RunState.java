@@ -1,17 +1,11 @@
 package se.umu.christofferakrin.run.model;
 
 
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.Locale;
-
 public class RunState{
 
     private int elapsedSeconds;
     private float distanceInMeters;
     private float tempo;
-
-    private String date = "";
 
     public RunState(){
     }
@@ -41,10 +35,6 @@ public class RunState{
             throw new IllegalArgumentException("Tempo can't be negative.");
 
         this.tempo = tempo;
-    }
-
-    public void setDateStampToNow(){
-        date = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
     }
 
     public int getElapsedSeconds(){

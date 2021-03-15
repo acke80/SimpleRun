@@ -24,9 +24,11 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 import se.umu.christofferakrin.run.R;
+import se.umu.christofferakrin.run.RunApp;
 import se.umu.christofferakrin.run.controller.result.ResultActivity;
 import se.umu.christofferakrin.run.model.Counter;
 import se.umu.christofferakrin.run.model.DistanceHandler;
+import se.umu.christofferakrin.run.model.RunEntity;
 
 import static se.umu.christofferakrin.run.controller.run.RunService.SET_PAUSE_KEY;
 
