@@ -12,10 +12,16 @@ import android.util.DisplayMetrics;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.NumberPicker;
+import android.widget.Spinner;
 import android.widget.TextView;
+import android.widget.TimePicker;
 
 import androidx.annotation.NonNull;
+import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
@@ -24,11 +30,10 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 import se.umu.christofferakrin.run.R;
-import se.umu.christofferakrin.run.RunApp;
 import se.umu.christofferakrin.run.controller.result.ResultActivity;
 import se.umu.christofferakrin.run.model.Counter;
 import se.umu.christofferakrin.run.model.DistanceHandler;
-import se.umu.christofferakrin.run.model.RunEntity;
+import se.umu.christofferakrin.run.model.RunGoal;
 
 import static se.umu.christofferakrin.run.controller.run.RunService.SET_PAUSE_KEY;
 
@@ -43,16 +48,28 @@ public class RunFragment extends Fragment{
     private Button pauseButton;
     private Button resumeButton;
 
+    private Spinner spinner;
+
+    private NumberPicker timePicker1;
+    private NumberPicker timePicker2;
+    private NumberPicker timePicker3;
+    private ConstraintLayout timePickerLayout;
+
+    private NumberPicker numberPicker1;
+    private NumberPicker numberPicker2;
+    private ConstraintLayout numberPickerLayout;
+
+
     private BottomNavigationView navView;
 
     public static final String DISTANCE_KEY = "distance";
     public static final String COUNTDOWN_KEY = "countdown";
     public static final String COUNTER_KEY = "counter";
     public static final String TEMPO_KEY = "tempo";
+    public static final String RUN_GOAL_KEY = "run goal";
 
     private BroadcastReceiver bReceiver;
     private LocalBroadcastManager bManager;
-
 
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState){
@@ -80,6 +97,57 @@ public class RunFragment extends Fragment{
 
         resumeButton = root.findViewById(R.id.resume_button);
         resumeButton.setOnClickListener(v -> resumeRun());
+
+        timePickerLayout = root.findViewById(R.id.timePickerLayout);
+        numberPickerLayout = root.findViewById(R.id.numberPickerLayout);
+
+        spinner = root.findViewById(R.id.spinner);
+        ArrayAdapter<String> spinnerArrayAdapter =
+                new ArrayAdapter<>(getActivity(), R.layout.spinner_item,
+                        new String[]{"Basic training", "Distance goal", "Time goal"});
+        spinnerArrayAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinner.setAdapter(spinnerArrayAdapter);
+
+        spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parentView, View selectedItemView, int position, long id) {
+                timePickerLayout.setVisibility(View.GONE);
+                numberPickerLayout.setVisibility(View.GONE);
+
+                if(position == 1){
+                    numberPickerLayout.setVisibility(View.VISIBLE);
+                }else if(position == 2){
+                    timePickerLayout.setVisibility(View.VISIBLE);
+                }
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parentView) {
+            }
+
+        });
+
+        timePicker1 = root.findViewById(R.id.timePicker1);
+        timePicker1.setMinValue(0);
+        timePicker1.setMaxValue(10000);
+        timePicker1.setWrapSelectorWheel(false);
+
+        timePicker2 = root.findViewById(R.id.timePicker2);
+        timePicker2.setMinValue(1);
+        timePicker2.setMaxValue(59);
+
+        timePicker3 = root.findViewById(R.id.timePicker3);
+        timePicker3.setMinValue(1);
+        timePicker3.setMaxValue(59);
+
+        numberPicker1 = root.findViewById(R.id.numberPicker1);
+        numberPicker1.setMinValue(1);
+        numberPicker1.setMaxValue(10000);
+        numberPicker1.setWrapSelectorWheel(false);
+
+        numberPicker2 = root.findViewById(R.id.numberPicker2);
+        numberPicker2.setMinValue(0);
+        numberPicker2.setMaxValue(9);
 
         requestFineLocationPermission();
 
@@ -126,6 +194,7 @@ public class RunFragment extends Fragment{
             textViewCounter.setText("");
             textViewTempo.setText("");
             navView.setVisibility(View.VISIBLE);
+            spinner.setVisibility(View.VISIBLE);
         }
     }
 
@@ -157,12 +226,29 @@ public class RunFragment extends Fragment{
         if(!checkFineLocationPermission())
             return;
 
+        spinner.setVisibility(View.GONE);
+        timePickerLayout.setVisibility(View.GONE);
+        numberPickerLayout.setVisibility(View.GONE);
         startButton.setVisibility(View.GONE);
-
         navView.setVisibility(View.GONE);
 
         initBroadcastReceiver();
-        startService();
+
+        RunGoal runGoal = new RunGoal(RunGoal.GoalType.BASIC, null);
+        if(spinner.getSelectedItemPosition() == 1){
+            runGoal = new RunGoal(RunGoal.GoalType.DISTANCE,
+                    new int[]{numberPicker1.getValue(), numberPicker2.getValue()});
+        }else if(spinner.getSelectedItemPosition() == 2){
+            runGoal = new RunGoal(RunGoal.GoalType.TIME,
+                    new int[]{
+                            timePicker1.getValue(),
+                            timePicker2.getValue(),
+                            timePicker3.getValue()});
+        }
+
+        Intent intent = new Intent(getContext(), RunService.class);
+        intent.putExtra(RUN_GOAL_KEY, runGoal);
+        getContext().startService(intent);
     }
 
     private void stopRun(){

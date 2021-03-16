@@ -17,6 +17,8 @@ import androidx.core.app.NotificationCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 
+import java.util.Arrays;
+
 import se.umu.christofferakrin.run.MainActivity;
 import se.umu.christofferakrin.run.R;
 import se.umu.christofferakrin.run.RunApp;
@@ -24,12 +26,14 @@ import se.umu.christofferakrin.run.model.CountDownCounter;
 import se.umu.christofferakrin.run.model.Counter;
 import se.umu.christofferakrin.run.model.DistanceHandler;
 import se.umu.christofferakrin.run.model.RunEntity;
+import se.umu.christofferakrin.run.model.RunGoal;
 import se.umu.christofferakrin.run.model.RunState;
 
 import static se.umu.christofferakrin.run.RunApp.CHANNEL_ID;
 import static se.umu.christofferakrin.run.controller.run.RunFragment.COUNTDOWN_KEY;
 import static se.umu.christofferakrin.run.controller.run.RunFragment.COUNTER_KEY;
 import static se.umu.christofferakrin.run.controller.run.RunFragment.DISTANCE_KEY;
+import static se.umu.christofferakrin.run.controller.run.RunFragment.RUN_GOAL_KEY;
 import static se.umu.christofferakrin.run.controller.run.RunFragment.TEMPO_KEY;
 
 
@@ -58,6 +62,8 @@ public class RunService extends Service{
 
     public static final String SET_PAUSE_KEY = "set_pause";
 
+    private RunGoal curRunGoal;
+
     @Nullable
     @Override
     public IBinder onBind(Intent intent){
@@ -67,6 +73,7 @@ public class RunService extends Service{
     @Override
     public int onStartCommand(Intent intent, int flags, int startId){
         curRunState = new RunState();
+        curRunGoal = intent.getParcelableExtra(RUN_GOAL_KEY);
         startRun(curRunState);
 
         Intent notificationIntent = new Intent(this, MainActivity.class);
