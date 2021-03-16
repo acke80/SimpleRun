@@ -12,8 +12,8 @@
             android:title="@string/title_run" />
 
     <item
-            android:id="@+id/navigation_achievements"
-            android:icon="@drawable/ic_baseline_insights_24"
-            android:title="@string/title_achievements" />
+            android:id="@+id/navigation_statistics"
+            android:icon="@drawable/ic_baseline_leaderboard_24"
+            android:title="@string/title_statistics" />
 
 </menu>

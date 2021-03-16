@@ -1,7 +1,6 @@
 package se.umu.christofferakrin.run;
 
 import android.os.Bundle;
-import android.view.View;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
@@ -23,7 +22,7 @@ public class MainActivity extends AppCompatActivity{
         BottomNavigationView navView = findViewById(R.id.nav_view);
 
         AppBarConfiguration appBarConfiguration = new AppBarConfiguration.Builder(
-                R.id.navigation_history, R.id.navigation_run, R.id.navigation_achievements)
+                R.id.navigation_history, R.id.navigation_run, R.id.navigation_statistics)
                 .build();
 
         NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment);

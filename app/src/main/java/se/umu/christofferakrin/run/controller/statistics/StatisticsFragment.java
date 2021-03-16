@@ -1,4 +1,4 @@
-package se.umu.christofferakrin.run.controller.history;
+package se.umu.christofferakrin.run.controller.statistics;
 
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -16,22 +16,18 @@ import java.util.ArrayList;
 
 import se.umu.christofferakrin.run.R;
 import se.umu.christofferakrin.run.RunApp;
-import se.umu.christofferakrin.run.model.Counter;
-import se.umu.christofferakrin.run.model.DistanceHandler;
+import se.umu.christofferakrin.run.model.StatisticsManager;
 import se.umu.christofferakrin.run.model.RunEntity;
 
-public class HistoryFragment extends Fragment{
+public class StatisticsFragment extends Fragment{
 
-    private String[] distance;
-    private String[] time;
-    private String[] tempo;
-    private String[] date;
-
+    private String[] title;
+    private String[] content;
 
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState){
 
-        View root = inflater.inflate(R.layout.fragment_history, container, false);
+        View root = inflater.inflate(R.layout.fragment_statistics, container, false);
 
         BottomNavigationView navView = getActivity().findViewById(R.id.nav_view);
         navView.setVisibility(View.VISIBLE);
@@ -44,21 +40,23 @@ public class HistoryFragment extends Fragment{
             ArrayList<RunEntity> runEntities =
                     (ArrayList<RunEntity>) RunApp.getDatabase().runEntityDao().getAll();
 
-            int size = runEntities.size();
-            distance = new String[size];
-            time = new String[size];
-            tempo = new String[size];
-            date = new String[size];
+            StatisticsManager am = new StatisticsManager(runEntities);
 
-            for(int i = 0; i < size; i++){
-                int j = (size - 1) - i; /* Iterate backwards so we get newest first. */
-                distance[i] =
-                        DistanceHandler.parseDistanceToString(
-                                runEntities.get(j).distanceInMeter);
-                time[i] = Counter.parseSecondsToTimerString(runEntities.get(j).elapsedSeconds);
-                tempo[i] = DistanceHandler.parseTempoToString(runEntities.get(j).tempo);
-                date[i] = runEntities.get(j).dateString;
-            }
+            title = new String[4];
+            content = new String[4];
+
+            title[0] = "Total Distance";
+            content[0] = am.getTotalDistanceString();
+
+            title[1] = "Total Time";
+            content[1] = am.getTotalTimeString();
+
+            title[2] = "Average Tempo";
+            content[2] = am.getAvgTempoString();
+
+            title[3] = "Number of Runs";
+            content[3] = am.getNumOfRunsString();
+
 
         });
 
@@ -71,12 +69,8 @@ public class HistoryFragment extends Fragment{
         }
 
         recyclerView.setAdapter(
-                new HistoryRecyclerAdapter(
-                        container.getContext(), distance, time, tempo, date
-                )
-        );
+                new StatisticsRecyclerAdapter(container.getContext(), title, content));
 
         return root;
     }
-
 }

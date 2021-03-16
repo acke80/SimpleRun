@@ -1,4 +1,4 @@
-package se.umu.christofferakrin.run.controller.result;
+package se.umu.christofferakrin.run.controller.history;
 
 import android.content.Context;
 import android.view.LayoutInflater;
@@ -13,8 +13,8 @@ import androidx.recyclerview.widget.RecyclerView;
 import se.umu.christofferakrin.run.R;
 
 
-/** Adapter used by the RecyclerView in ResultActivity. */
-public class ResultRecyclerAdapter extends RecyclerView.Adapter<ResultRecyclerAdapter.ViewHolder>{
+/** Adapter used by the RecyclerView in HistoryFragment. */
+public class HistoryRecyclerAdapter extends RecyclerView.Adapter<HistoryRecyclerAdapter.ViewHolder>{
 
     Context context;
 
@@ -23,8 +23,8 @@ public class ResultRecyclerAdapter extends RecyclerView.Adapter<ResultRecyclerAd
     String[] tempo;
     String[] date;
 
-    public ResultRecyclerAdapter(Context context, String[] distance, String[] time,
-                                 String[] tempo, String[] date){
+    public HistoryRecyclerAdapter(Context context, String[] distance, String[] time,
+                                  String[] tempo, String[] date){
         this.context = context;
         this.distance = distance;
         this.time = time;
@@ -34,15 +34,15 @@ public class ResultRecyclerAdapter extends RecyclerView.Adapter<ResultRecyclerAd
 
     @NonNull
     @Override
-    public ResultRecyclerAdapter.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType){
+    public HistoryRecyclerAdapter.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType){
         LayoutInflater inflater = LayoutInflater.from(context);
-        View view = inflater.inflate(R.layout.recyclerview_row, parent, false);
+        View view = inflater.inflate(R.layout.recyclerview_history_row, parent, false);
 
         return new ViewHolder(view);
     }
 
     @Override
-    public void onBindViewHolder(@NonNull ResultRecyclerAdapter.ViewHolder holder, int position){
+    public void onBindViewHolder(@NonNull HistoryRecyclerAdapter.ViewHolder holder, int position){
         holder.distanceTextView.setText(distance[position]);
         holder.timeTextView.setText(time[position]);
         holder.tempoTextView.setText(tempo[position]);
