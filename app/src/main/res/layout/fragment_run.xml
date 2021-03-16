@@ -7,6 +7,15 @@
         tools:context=".controller.run.RunFragment">
 
 
+    <Spinner
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/spinner"
+            app:layout_constraintBottom_toTopOf="@+id/start_button"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            android:layout_marginBottom="56dp" />
+
     <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -15,12 +24,8 @@
             app:layout_constraintTop_toTopOf="parent"
             android:orientation="vertical"
             android:gravity="center"
-            android:layout_marginTop="64dp">
-
-        <Spinner
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:id="@+id/spinner" />
+            app:layout_constraintBottom_toTopOf="@+id/start_button"
+            android:id="@+id/linearLayout">
 
         <androidx.constraintlayout.widget.ConstraintLayout
                 android:id="@+id/timePickerLayout"
@@ -33,6 +38,8 @@
                     android:id="@+id/timePicker1"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:scaleX="1.25"
+                    android:scaleY="1.25"
                     app:layout_constraintEnd_toStartOf="@+id/timePicker2"
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintTop_toTopOf="parent"
@@ -53,6 +60,8 @@
                     android:id="@+id/timePicker2"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:scaleX="1.15"
+                    android:scaleY="1.15"
                     app:layout_constraintTop_toTopOf="parent"
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintEnd_toEndOf="parent"
@@ -90,11 +99,14 @@
 
             <NumberPicker
                     android:id="@+id/numberPicker1"
+                    android:scaleX="1.25"
+                    android:scaleY="1.25"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     app:layout_constraintEnd_toStartOf="@+id/textView2"
                     app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintTop_toTopOf="parent" />
+                    app:layout_constraintTop_toTopOf="parent"
+                    android:layout_marginEnd="10dp" />
 
             <TextView
                     android:id="@+id/textView2"
@@ -109,11 +121,26 @@
 
             <NumberPicker
                     android:id="@+id/numberPicker2"
+                    android:scaleX="1.10"
+                    android:scaleY="1.10"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     app:layout_constraintStart_toEndOf="@+id/textView2"
                     app:layout_constraintTop_toTopOf="parent"
-                    app:layout_constraintBottom_toBottomOf="parent" />
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    android:layout_marginStart="10dp" />
+
+            <TextView
+                    android:id="@+id/textView3"
+                    android:text="km"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="16sp"
+                    android:fontFamily="sans-serif-light"
+                    app:layout_constraintStart_toEndOf="@+id/numberPicker2"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"
+                    android:layout_marginStart="10dp" />
 
         </androidx.constraintlayout.widget.ConstraintLayout>
 

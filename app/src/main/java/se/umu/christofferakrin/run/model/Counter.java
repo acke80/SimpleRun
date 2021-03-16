@@ -86,6 +86,10 @@ public class Counter implements Runnable{
         return second + minute * 60 + hour * 3600;
     }
 
+    public static int parseTimeToSeconds(int hour, int minute, int seconds){
+        return hour * 3600 + minute * 60 + seconds;
+    }
+
     public static String parseSecondsToTimerString(int second){
         int hour = second / 3600;
         int minute = (second % 3600) / 60;

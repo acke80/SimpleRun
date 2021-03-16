@@ -70,6 +70,10 @@ public class DistanceHandler{
         return distanceInMeters;
     }
 
+    public static int distanceToMeters(int km, int m){
+        return km * 1000 + m;
+    }
+
     public static String parseDistanceToString(float distance){
         if(distance < 1000)
             return (int) distance + " m";

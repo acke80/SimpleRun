@@ -17,8 +17,6 @@ import androidx.core.app.NotificationCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 
-import java.util.Arrays;
-
 import se.umu.christofferakrin.run.MainActivity;
 import se.umu.christofferakrin.run.R;
 import se.umu.christofferakrin.run.RunApp;
@@ -26,6 +24,8 @@ import se.umu.christofferakrin.run.model.CountDownCounter;
 import se.umu.christofferakrin.run.model.Counter;
 import se.umu.christofferakrin.run.model.DistanceHandler;
 import se.umu.christofferakrin.run.model.RunEntity;
+import static se.umu.christofferakrin.run.model.RunGoal.GoalType;
+
 import se.umu.christofferakrin.run.model.RunGoal;
 import se.umu.christofferakrin.run.model.RunState;
 
@@ -62,7 +62,7 @@ public class RunService extends Service{
 
     public static final String SET_PAUSE_KEY = "set_pause";
 
-    private RunGoal curRunGoal;
+    private RunGoal runGoal;
 
     @Nullable
     @Override
@@ -73,7 +73,7 @@ public class RunService extends Service{
     @Override
     public int onStartCommand(Intent intent, int flags, int startId){
         curRunState = new RunState();
-        curRunGoal = intent.getParcelableExtra(RUN_GOAL_KEY);
+        runGoal = intent.getParcelableExtra(RUN_GOAL_KEY);
         startRun(curRunState);
 
         Intent notificationIntent = new Intent(this, MainActivity.class);
@@ -179,9 +179,29 @@ public class RunService extends Service{
 
                         String tempo = distanceHandler.getTempoString(counter.getElapsedSeconds());
 
-                        broadcast(COUNTER_KEY, counter.getElapsedSeconds());
-                        broadcast(DISTANCE_KEY, distanceHandler.getDistanceInMeters());
                         broadcast(TEMPO_KEY, tempo);
+
+                        if(runGoal.getGoalType() != GoalType.BASIC){
+                            int[] values = runGoal.getValues();
+
+                            if(runGoal.getGoalType() == GoalType.DISTANCE){
+                                int distanceGoal =
+                                        DistanceHandler.distanceToMeters(values[0] , values[1]*100);
+                                broadcast(DISTANCE_KEY,
+                                        distanceGoal - distanceHandler.getDistanceInMeters());
+                                broadcast(COUNTER_KEY, counter.getElapsedSeconds());
+
+                            }else if(runGoal.getGoalType() == GoalType.TIME){
+                                int secondsGoal =
+                                        Counter.parseTimeToSeconds(values[0], values[1], values[2]);
+                                broadcast(DISTANCE_KEY, distanceHandler.getDistanceInMeters());
+                                broadcast(COUNTER_KEY,
+                                        secondsGoal - counter.getElapsedSeconds());
+                            }
+                        }else{
+                            broadcast(DISTANCE_KEY, distanceHandler.getDistanceInMeters());
+                            broadcast(COUNTER_KEY, counter.getElapsedSeconds());
+                        }
 
                         setNotificationContentText(
                                 "Distance: " + distanceHandler.getDistanceAsString(),

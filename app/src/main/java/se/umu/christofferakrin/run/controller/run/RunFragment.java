@@ -133,11 +133,11 @@ public class RunFragment extends Fragment{
         timePicker1.setWrapSelectorWheel(false);
 
         timePicker2 = root.findViewById(R.id.timePicker2);
-        timePicker2.setMinValue(1);
+        timePicker2.setMinValue(0);
         timePicker2.setMaxValue(59);
 
         timePicker3 = root.findViewById(R.id.timePicker3);
-        timePicker3.setMinValue(1);
+        timePicker3.setMinValue(0);
         timePicker3.setMaxValue(59);
 
         numberPicker1 = root.findViewById(R.id.numberPicker1);
