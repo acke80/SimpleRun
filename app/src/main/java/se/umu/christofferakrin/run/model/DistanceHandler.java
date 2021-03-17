@@ -10,7 +10,6 @@ import java.text.DecimalFormat;
 public class DistanceHandler{
 
     private static final DecimalFormat df = new DecimalFormat("#.##");
-    private static final float MAX_NOISE = 0.1f; /* Minimum distance for new location in meters. */
 
     static {
         df.setRoundingMode(RoundingMode.FLOOR);
@@ -29,10 +28,8 @@ public class DistanceHandler{
     }
 
     public String getDistanceAsString(){
-        String dist = parseDistanceToString(distanceInMeters);
 
-        if(dist == null) return "";
-        else return dist;
+        return parseDistanceToString(distanceInMeters);
     }
 
     /** @return String for tempo in min/km. */
@@ -51,18 +48,14 @@ public class DistanceHandler{
     }
 
     public void setLocation(Location location){
-        if(location == null) return;
+        if(location == null || !location.hasVerticalAccuracy()) return;
 
         if(curLocation == null){ /* If this is first invoke. */
             curLocation = location;
             return;
         }
 
-        float distance = curLocation.distanceTo(location);
-
-        if(distance < MAX_NOISE) return;
-
-        distanceInMeters += distance;
+        distanceInMeters += curLocation.distanceTo(location);
         curLocation = location;
     }
 

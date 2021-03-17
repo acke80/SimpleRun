@@ -28,7 +28,6 @@ import se.umu.christofferakrin.run.model.Counter;
 import se.umu.christofferakrin.run.model.DistanceHandler;
 import se.umu.christofferakrin.run.model.RunEntity;
 
-import static se.umu.christofferakrin.run.controller.run.RunFragment.STOP_KEY;
 import static se.umu.christofferakrin.run.model.RunGoal.GoalType;
 
 import se.umu.christofferakrin.run.model.RunGoal;
@@ -79,6 +78,7 @@ public class RunService extends Service{
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId){
+        goalFinished = false;
         curRunState = new RunState();
         runGoal = intent.getParcelableExtra(RUN_GOAL_KEY);
         startRun(curRunState);
@@ -117,19 +117,17 @@ public class RunService extends Service{
                         }catch(InterruptedException e){
                             e.printStackTrace();
                         }
-                        locationManager.removeUpdates(locationListener);
-                    }else{
+                        if(locationListener != null)
+                            locationManager.removeUpdates(locationListener);
+                    }else if(!running){
                         startRun(curRunState);
                     }
-                }else if(intent.getAction().equals(STOP_KEY)){
-                    stopSelf();
                 }
             }
         };
         bManager = LocalBroadcastManager.getInstance(this);
         IntentFilter intentFilter = new IntentFilter();
         intentFilter.addAction(SET_PAUSE_KEY);
-        intentFilter.addAction(STOP_KEY);
         bManager.registerReceiver(bReceiver, intentFilter);
     }
 
@@ -138,7 +136,6 @@ public class RunService extends Service{
         running = false;
 
         locationManager.removeUpdates(locationListener);
-        locationManager = null;
 
         try{
             runningThread.join();
@@ -172,8 +169,8 @@ public class RunService extends Service{
 
         locationListener = location -> distanceHandler.setLocation(location);
 
-        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 2500,
-                5, locationListener);
+        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 2000,
+                3, locationListener);
 
         runningThread = new Thread(() -> {
             running = true;
@@ -195,6 +192,12 @@ public class RunService extends Service{
 
                         broadcast(TEMPO_KEY, tempo);
 
+                        String notificationTitle =
+                                "Distance: " + distanceHandler.getDistanceAsString();
+
+                        String notificationContext = "Time: " + counter.getTimerString() +
+                                "  |  Tempo: " + tempo;
+
                         /* If we have a specific goal. */
                         if(runGoal.getGoalType() != GoalType.BASIC && !goalFinished){
                             int[] values = runGoal.getValues();
@@ -213,6 +216,13 @@ public class RunService extends Service{
                                     broadcast(DISTANCE_KEY, deltaDistance);
                                 }
 
+                                if(!goalFinished){
+                                    notificationTitle =
+                                            "Distance left: " +
+                                                    DistanceHandler.
+                                                            parseDistanceToString(deltaDistance);
+                                }
+
                             }else if(runGoal.getGoalType() == GoalType.TIME){
                                 broadcast(DISTANCE_KEY, distanceHandler.getDistanceInMeters());
 
@@ -226,23 +236,25 @@ public class RunService extends Service{
                                     broadcast(COUNTER_KEY, deltaSeconds);
                                 }
 
+                                if(!goalFinished){
+                                    notificationContext =
+                                            "Time left: " +
+                                                    Counter.parseSecondsToTimerString(deltaSeconds)
+                                                    + "  |  Tempo: " + tempo;
+                                }
                             }
                         }else{
                             broadcast(DISTANCE_KEY, distanceHandler.getDistanceInMeters());
                             broadcast(COUNTER_KEY, counter.getElapsedSeconds());
+
+                            if(goalFinished){
+                                notificationTitle =
+                                        "Goal reached! | " + "Distance: " +
+                                                distanceHandler.getDistanceAsString();
+                            }
                         }
 
-                        if(goalFinished){
-                            setNotificationContentText(
-                                    "Goal Reached! | " + "Distance: " +
-                                            distanceHandler.getDistanceAsString(),
-                                    counter.getTimerString() + "  |  " + tempo);
-                        }else{
-                            setNotificationContentText(
-                                    "Distance: " + distanceHandler.getDistanceAsString(),
-                                    counter.getTimerString() + "  |  " + tempo);
-                        }
-
+                        setNotificationContentText(notificationTitle, notificationContext);
 
                         curRunState.setElapsedSeconds(counter.getElapsedSeconds());
                         curRunState.setDistanceInMeters(distanceHandler.getDistanceInMeters());

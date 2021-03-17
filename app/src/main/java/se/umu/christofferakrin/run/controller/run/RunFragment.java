@@ -21,7 +21,6 @@ import android.widget.Button;
 import android.widget.NumberPicker;
 import android.widget.Spinner;
 import android.widget.TextView;
-import android.widget.TimePicker;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -71,7 +70,6 @@ public class RunFragment extends Fragment{
     public static final String COUNTER_KEY = "counter";
     public static final String TEMPO_KEY = "tempo";
     public static final String RUN_GOAL_KEY = "run goal";
-    public static final String STOP_KEY = "stop";
 
     private BroadcastReceiver bReceiver;
     private LocalBroadcastManager bManager;
@@ -89,19 +87,29 @@ public class RunFragment extends Fragment{
         textViewTempo = root.findViewById(R.id.text_tempo);
 
         startButton = root.findViewById(R.id.start_button);
-        startButton.setOnClickListener(v -> startRun());
+        startButton.setOnClickListener(v -> {
+            vibrate();
+            startRun();
+        });
 
         stopButton = root.findViewById(R.id.stop_button);
         stopButton.setOnClickListener(v -> {
+            vibrate();
             stopRun();
             toResultActivity();
         });
 
         pauseButton = root.findViewById(R.id.pause_button);
-        pauseButton.setOnClickListener(v -> pauseRun());
+        pauseButton.setOnClickListener(v -> {
+            vibrate();
+            pauseRun();
+        });
 
         resumeButton = root.findViewById(R.id.resume_button);
-        resumeButton.setOnClickListener(v -> resumeRun());
+        resumeButton.setOnClickListener(v -> {
+            vibrate();
+            resumeRun();
+        });
 
         timePickerLayout = root.findViewById(R.id.timePickerLayout);
         numberPickerLayout = root.findViewById(R.id.numberPickerLayout);
@@ -115,7 +123,8 @@ public class RunFragment extends Fragment{
 
         spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
-            public void onItemSelected(AdapterView<?> parentView, View selectedItemView, int position, long id) {
+            public void onItemSelected(AdapterView<?> parentView,
+                                       View selectedItemView, int position, long id) {
                 timePickerLayout.setVisibility(View.GONE);
                 numberPickerLayout.setVisibility(View.GONE);
 
@@ -332,6 +341,9 @@ public class RunFragment extends Fragment{
                         String countdown = intent.getStringExtra(COUNTDOWN_KEY);
                         textViewCounter.setText(countdown);
 
+                        pauseButton.setVisibility(View.GONE);
+                        stopButton.setVisibility(View.GONE);
+
                         if(countdown.equals("Go!"))
                             textViewCounter.setTextColor(
                                     ContextCompat.getColor(context, R.color.green_700));
@@ -371,12 +383,6 @@ public class RunFragment extends Fragment{
         LocalBroadcastManager.getInstance(getActivity()).sendBroadcast(RTReturn);
     }
 
-    private void broadcastOnStop(){
-        Intent RTReturn = new Intent(SET_PAUSE_KEY);
-        RTReturn.putExtra(STOP_KEY, 1);
-        LocalBroadcastManager.getInstance(getActivity()).sendBroadcast(RTReturn);
-    }
-
     /** Adapts text size to size of screen. */
     private void adaptTextSize(){
         DisplayMetrics metrics = getResources().getDisplayMetrics();
@@ -386,6 +392,16 @@ public class RunFragment extends Fragment{
         textViewDistance.setTextSize(DeviceTotalWidth/20f);
         textViewCounter.setTextSize(DeviceTotalWidth/25f);
         textViewTempo.setTextSize(DeviceTotalWidth/35f);
+    }
+
+    private void vibrate(){
+        Vibrator v = (Vibrator) getContext().getSystemService(Context.VIBRATOR_SERVICE);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            v.vibrate(VibrationEffect.createOneShot(10, VibrationEffect.DEFAULT_AMPLITUDE));
+        } else {
+            v.vibrate(10);
+        }
     }
 
 }

@@ -42,7 +42,6 @@ public class Counter{
 
                 /* Every second. */
                 if(System.currentTimeMillis() - timer >= SIM) {
-                    System.out.println(Thread.currentThread());
                     timer += SIM;
                     tickHumanTime();
                 }
