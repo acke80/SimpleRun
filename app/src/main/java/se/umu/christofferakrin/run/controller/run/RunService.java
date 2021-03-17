@@ -10,7 +10,10 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.os.Build;
 import android.os.IBinder;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
 
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
@@ -24,6 +27,8 @@ import se.umu.christofferakrin.run.model.CountDownCounter;
 import se.umu.christofferakrin.run.model.Counter;
 import se.umu.christofferakrin.run.model.DistanceHandler;
 import se.umu.christofferakrin.run.model.RunEntity;
+
+import static se.umu.christofferakrin.run.controller.run.RunFragment.STOP_KEY;
 import static se.umu.christofferakrin.run.model.RunGoal.GoalType;
 
 import se.umu.christofferakrin.run.model.RunGoal;
@@ -64,6 +69,8 @@ public class RunService extends Service{
 
     private RunGoal runGoal;
 
+    private boolean goalFinished = false;
+
     @Nullable
     @Override
     public IBinder onBind(Intent intent){
@@ -82,8 +89,6 @@ public class RunService extends Service{
 
         initBroadcastReceiver();
 
-        /* This is deprecated, but I don't know how I can change the content of the
-        * notification without accessing the builder instance. */
         notificationBuilder = new NotificationCompat.Builder(this, CHANNEL_ID)
                 .setContentText("")
                 .setContentTitle("Starting...")
@@ -116,12 +121,15 @@ public class RunService extends Service{
                     }else{
                         startRun(curRunState);
                     }
+                }else if(intent.getAction().equals(STOP_KEY)){
+                    stopSelf();
                 }
             }
         };
         bManager = LocalBroadcastManager.getInstance(this);
         IntentFilter intentFilter = new IntentFilter();
         intentFilter.addAction(SET_PAUSE_KEY);
+        intentFilter.addAction(STOP_KEY);
         bManager.registerReceiver(bReceiver, intentFilter);
     }
 
@@ -130,6 +138,7 @@ public class RunService extends Service{
         running = false;
 
         locationManager.removeUpdates(locationListener);
+        locationManager = null;
 
         try{
             runningThread.join();
@@ -170,9 +179,14 @@ public class RunService extends Service{
             running = true;
             countDownCounter.start();
 
+            boolean counterStarted = false;
+
             while(running){
                 if(countDownCounter.isFinished()){
-                    if(!counter.isRunning()) counter.start();
+                    if(!counter.isRunning() && !counterStarted){
+                        counterStarted = true;
+                        counter.start();
+                    }
 
                     if(!curCounterString.equals(counter.getTimerString())){
                         curCounterString = counter.getTimerString();
@@ -181,31 +195,54 @@ public class RunService extends Service{
 
                         broadcast(TEMPO_KEY, tempo);
 
-                        if(runGoal.getGoalType() != GoalType.BASIC){
+                        /* If we have a specific goal. */
+                        if(runGoal.getGoalType() != GoalType.BASIC && !goalFinished){
                             int[] values = runGoal.getValues();
 
                             if(runGoal.getGoalType() == GoalType.DISTANCE){
-                                int distanceGoal =
-                                        DistanceHandler.distanceToMeters(values[0] , values[1]*100);
-                                broadcast(DISTANCE_KEY,
-                                        distanceGoal - distanceHandler.getDistanceInMeters());
                                 broadcast(COUNTER_KEY, counter.getElapsedSeconds());
 
+                                int distanceGoal =
+                                        DistanceHandler.distanceToMeters(values[0] , values[1]*100);
+                                float deltaDistance =
+                                        distanceGoal - distanceHandler.getDistanceInMeters();
+
+                                if(deltaDistance <= 0){
+                                    stopRun();
+                                }else{
+                                    broadcast(DISTANCE_KEY, deltaDistance);
+                                }
+
                             }else if(runGoal.getGoalType() == GoalType.TIME){
+                                broadcast(DISTANCE_KEY, distanceHandler.getDistanceInMeters());
+
                                 int secondsGoal =
                                         Counter.parseTimeToSeconds(values[0], values[1], values[2]);
-                                broadcast(DISTANCE_KEY, distanceHandler.getDistanceInMeters());
-                                broadcast(COUNTER_KEY,
-                                        secondsGoal - counter.getElapsedSeconds());
+                                int deltaSeconds = secondsGoal - counter.getElapsedSeconds();
+
+                                if(deltaSeconds <= 0){
+                                    stopRun();
+                                }else{
+                                    broadcast(COUNTER_KEY, deltaSeconds);
+                                }
+
                             }
                         }else{
                             broadcast(DISTANCE_KEY, distanceHandler.getDistanceInMeters());
                             broadcast(COUNTER_KEY, counter.getElapsedSeconds());
                         }
 
-                        setNotificationContentText(
-                                "Distance: " + distanceHandler.getDistanceAsString(),
-                                counter.getTimerString() + "  |  " + tempo);
+                        if(goalFinished){
+                            setNotificationContentText(
+                                    "Goal Reached! | " + "Distance: " +
+                                            distanceHandler.getDistanceAsString(),
+                                    counter.getTimerString() + "  |  " + tempo);
+                        }else{
+                            setNotificationContentText(
+                                    "Distance: " + distanceHandler.getDistanceAsString(),
+                                    counter.getTimerString() + "  |  " + tempo);
+                        }
+
 
                         curRunState.setElapsedSeconds(counter.getElapsedSeconds());
                         curRunState.setDistanceInMeters(distanceHandler.getDistanceInMeters());
@@ -219,13 +256,35 @@ public class RunService extends Service{
                     }
                 }
             }
+
+            counter.stop();
         });
 
         runningThread.start();
     }
 
+    private void stopRun(){
+        vibrate();
+
+        goalFinished = true;
+    }
+
+    private void vibrate(){
+        Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            v.vibrate(VibrationEffect.createOneShot(500, VibrationEffect.DEFAULT_AMPLITUDE));
+        } else {
+            v.vibrate(500);
+        }
+    }
+
     /** Sets the content text seen in the Notification for this Service. */
     private void setNotificationContentText(String contentTitle, String contentText){
+        if(goalFinished){
+            notificationBuilder.setColorized(true);
+            notificationBuilder.setColor(0xAA48D166);
+        }
         notificationBuilder.setContentTitle(contentTitle);
         notificationBuilder.setContentText(contentText);
         getSystemService(NotificationManager.class).notify(1, notificationBuilder.build());

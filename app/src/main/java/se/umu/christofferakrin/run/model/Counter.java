@@ -1,7 +1,7 @@
 package se.umu.christofferakrin.run.model;
 
 /** Handles an active runs timer. */
-public class Counter implements Runnable{
+public class Counter{
 
     private final int SIM = 1000; /* Seconds in milliseconds. */
     private long timer;
@@ -34,11 +34,25 @@ public class Counter implements Runnable{
 
     public void start(){
         running = true;
-        runningThread = new Thread(this);
+
+        runningThread = new Thread(() -> {
+            timer = System.currentTimeMillis();
+
+            while(running){
+
+                /* Every second. */
+                if(System.currentTimeMillis() - timer >= SIM) {
+                    System.out.println(Thread.currentThread());
+                    timer += SIM;
+                    tickHumanTime();
+                }
+            }
+        });
+
         runningThread.start();
     }
 
-    public void stop(){
+    public synchronized void stop(){
         running = false;
 
         try {
@@ -46,22 +60,7 @@ public class Counter implements Runnable{
         }catch(InterruptedException e) {
             e.printStackTrace();
         }
-    }
 
-    @Override
-    public void run(){
-        timer = System.currentTimeMillis();
-
-        while(running){
-
-            /* Every second. */
-            if(System.currentTimeMillis() - timer >= SIM) {
-                timer += SIM;
-                tickHumanTime();
-            }
-        }
-
-        stop();
     }
 
     private void tickHumanTime(){
@@ -77,6 +76,7 @@ public class Counter implements Runnable{
     public String getTimerString(){
         return parseSecondsToTimerString(second, minute, hour);
     }
+
 
     public boolean isRunning(){
         return running;

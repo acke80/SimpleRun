@@ -7,7 +7,10 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
 import android.util.DisplayMetrics;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -19,6 +22,7 @@ import android.widget.NumberPicker;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.TimePicker;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.constraintlayout.widget.ConstraintLayout;
@@ -67,6 +71,7 @@ public class RunFragment extends Fragment{
     public static final String COUNTER_KEY = "counter";
     public static final String TEMPO_KEY = "tempo";
     public static final String RUN_GOAL_KEY = "run goal";
+    public static final String STOP_KEY = "stop";
 
     private BroadcastReceiver bReceiver;
     private LocalBroadcastManager bManager;
@@ -141,7 +146,7 @@ public class RunFragment extends Fragment{
         timePicker3.setMaxValue(59);
 
         numberPicker1 = root.findViewById(R.id.numberPicker1);
-        numberPicker1.setMinValue(1);
+        numberPicker1.setMinValue(0);
         numberPicker1.setMaxValue(10000);
         numberPicker1.setWrapSelectorWheel(false);
 
@@ -171,6 +176,8 @@ public class RunFragment extends Fragment{
 
             navView.setVisibility(View.GONE);
 
+            spinner.setVisibility(View.GONE);
+
             startButton.setVisibility(View.GONE);
             stopButton.setVisibility(View.VISIBLE);
 
@@ -195,6 +202,7 @@ public class RunFragment extends Fragment{
             textViewTempo.setText("");
             navView.setVisibility(View.VISIBLE);
             spinner.setVisibility(View.VISIBLE);
+            spinner.setSelection(0);
         }
     }
 
@@ -226,6 +234,30 @@ public class RunFragment extends Fragment{
         if(!checkFineLocationPermission())
             return;
 
+        RunGoal runGoal = new RunGoal(RunGoal.GoalType.BASIC, null);
+        if(spinner.getSelectedItemPosition() == 1){
+            if(numberPicker1.getValue() + numberPicker2.getValue() == 0){
+                Toast.makeText(
+                        getContext(), "Distance goal can't be zero", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            runGoal = new RunGoal(RunGoal.GoalType.DISTANCE,
+                    new int[]{numberPicker1.getValue(), numberPicker2.getValue()});
+        }else if(spinner.getSelectedItemPosition() == 2){
+            if(timePicker1.getValue() + timePicker2.getValue() + timePicker3.getValue() == 0){
+                Toast.makeText(getContext(), "Time goal can't be zero", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            runGoal = new RunGoal(RunGoal.GoalType.TIME,
+                    new int[]{
+                            timePicker1.getValue(),
+                            timePicker2.getValue(),
+                            timePicker3.getValue()});
+        }
+
+
+
         spinner.setVisibility(View.GONE);
         timePickerLayout.setVisibility(View.GONE);
         numberPickerLayout.setVisibility(View.GONE);
@@ -233,18 +265,6 @@ public class RunFragment extends Fragment{
         navView.setVisibility(View.GONE);
 
         initBroadcastReceiver();
-
-        RunGoal runGoal = new RunGoal(RunGoal.GoalType.BASIC, null);
-        if(spinner.getSelectedItemPosition() == 1){
-            runGoal = new RunGoal(RunGoal.GoalType.DISTANCE,
-                    new int[]{numberPicker1.getValue(), numberPicker2.getValue()});
-        }else if(spinner.getSelectedItemPosition() == 2){
-            runGoal = new RunGoal(RunGoal.GoalType.TIME,
-                    new int[]{
-                            timePicker1.getValue(),
-                            timePicker2.getValue(),
-                            timePicker3.getValue()});
-        }
 
         Intent intent = new Intent(getContext(), RunService.class);
         intent.putExtra(RUN_GOAL_KEY, runGoal);
@@ -277,14 +297,9 @@ public class RunFragment extends Fragment{
         pauseButton.setVisibility(View.VISIBLE);
     }
 
-    private void startService(){
-        Intent intent = new Intent(getActivity(), RunService.class);
-        getActivity().startService(intent);
-    }
-
     private void stopService(){
-        Intent intent = new Intent(getActivity(), RunService.class);
-        getActivity().stopService(intent);
+        Intent intent = new Intent(getContext(), RunService.class);
+        getContext().stopService(intent);
     }
 
     private boolean checkFineLocationPermission(){
@@ -353,6 +368,12 @@ public class RunFragment extends Fragment{
     private void broadcastOnPause(boolean paused){
         Intent RTReturn = new Intent(SET_PAUSE_KEY);
         RTReturn.putExtra(SET_PAUSE_KEY, paused);
+        LocalBroadcastManager.getInstance(getActivity()).sendBroadcast(RTReturn);
+    }
+
+    private void broadcastOnStop(){
+        Intent RTReturn = new Intent(SET_PAUSE_KEY);
+        RTReturn.putExtra(STOP_KEY, 1);
         LocalBroadcastManager.getInstance(getActivity()).sendBroadcast(RTReturn);
     }
 
