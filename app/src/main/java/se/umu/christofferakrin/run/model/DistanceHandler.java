@@ -25,6 +25,8 @@ public class DistanceHandler{
     private float distanceInMeters;
     private Location curLocation;
 
+    private boolean paused;
+
     public DistanceHandler(float distanceInMeters){
         this.distanceInMeters = distanceInMeters;
 
@@ -58,7 +60,9 @@ public class DistanceHandler{
             return;
         }
 
-        distanceInMeters += curLocation.distanceTo(location);
+        if(!paused)
+            distanceInMeters += curLocation.distanceTo(location);
+
         curLocation = location;
     }
 
@@ -81,4 +85,7 @@ public class DistanceHandler{
         return df.format(tempo) + " min/km";
     }
 
+    public void setPaused(boolean paused){
+        this.paused = paused;
+    }
 }

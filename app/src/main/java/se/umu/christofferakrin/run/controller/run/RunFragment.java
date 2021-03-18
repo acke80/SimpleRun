@@ -7,6 +7,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.content.res.ColorStateList;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.VibrationEffect;
@@ -19,11 +20,13 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.NumberPicker;
+import android.widget.ProgressBar;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.content.res.AppCompatResources;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -64,11 +67,14 @@ public class RunFragment extends Fragment{
 
     private BottomNavigationView navView;
 
+    private ProgressBar progressBar;
+
     public static final String DISTANCE_KEY = "distance";
     public static final String COUNTDOWN_KEY = "countdown";
     public static final String COUNTER_KEY = "counter";
     public static final String TEMPO_KEY = "tempo";
     public static final String RUN_GOAL_KEY = "run goal";
+    public static final String PROGRESS_KEY = "progress";
 
     private BroadcastReceiver bReceiver;
     private LocalBroadcastManager bManager;
@@ -162,6 +168,9 @@ public class RunFragment extends Fragment{
         numberPicker2.setMinValue(0);
         numberPicker2.setMaxValue(9);
 
+        progressBar = root.findViewById(R.id.progressBar);
+        progressBar.setProgressDrawable(ContextCompat.getDrawable(getContext(), R.drawable.progressbar));
+
         requestFineLocationPermission();
 
         adaptTextSize();
@@ -178,6 +187,15 @@ public class RunFragment extends Fragment{
         updateView();
     }
 
+    @Override
+    public void onPause(){
+        super.onPause();
+
+        if(bManager != null)
+            bManager.unregisterReceiver(bReceiver);
+
+    }
+
     private void updateView(){
         if(isServiceRunning()){
             initBroadcastReceiver();
@@ -189,17 +207,15 @@ public class RunFragment extends Fragment{
             startButton.setVisibility(View.GONE);
             stopButton.setVisibility(View.VISIBLE);
 
-            textViewCounter.setText(RunService.getTimerString());
-            textViewDistance.setText(RunService.getDistanceString());
-            textViewTempo.setText(RunService.getTempoString());
-
-            if(RunService.isRunning()){
-                pauseButton.setVisibility(View.VISIBLE);
-                resumeButton.setVisibility(View.GONE);
-            }else{
+            if(RunService.isPaused()){
                 pauseButton.setVisibility(View.GONE);
                 resumeButton.setVisibility(View.VISIBLE);
+                textViewDistance.setText("Paused");
+            }else{
+                pauseButton.setVisibility(View.VISIBLE);
+                resumeButton.setVisibility(View.GONE);
             }
+
         }else{
             startButton.setVisibility(View.VISIBLE);
             pauseButton.setVisibility(View.GONE);
@@ -211,6 +227,8 @@ public class RunFragment extends Fragment{
             navView.setVisibility(View.VISIBLE);
             spinner.setVisibility(View.VISIBLE);
             spinner.setSelection(0);
+            progressBar.setVisibility(View.GONE);
+            progressBar.setProgress(0);
         }
     }
 
@@ -252,6 +270,9 @@ public class RunFragment extends Fragment{
 
             runGoal = new RunGoal(RunGoal.GoalType.DISTANCE,
                     new int[]{numberPicker1.getValue(), numberPicker2.getValue()});
+
+            progressBar.setVisibility(View.VISIBLE);
+
         }else if(spinner.getSelectedItemPosition() == 2){
             if(timePicker1.getValue() + timePicker2.getValue() + timePicker3.getValue() == 0){
                 Toast.makeText(getContext(), "Time goal can't be zero", Toast.LENGTH_SHORT).show();
@@ -262,6 +283,8 @@ public class RunFragment extends Fragment{
                             timePicker1.getValue(),
                             timePicker2.getValue(),
                             timePicker3.getValue()});
+
+            progressBar.setVisibility(View.VISIBLE);
         }
 
         spinner.setVisibility(View.GONE);
@@ -359,6 +382,16 @@ public class RunFragment extends Fragment{
                         String tempo = intent.getStringExtra(TEMPO_KEY);
                         textViewTempo.setText(tempo);
                         break;
+                    case PROGRESS_KEY:
+                        int progress = intent.getIntExtra(PROGRESS_KEY, 0);
+                        if(progress == -1){
+                            progressBar.setVisibility(View.GONE);
+                            progressBar.setProgress(0);
+                        }else{
+                            progressBar.setVisibility(View.VISIBLE);
+                            progressBar.setProgress(progress);
+                        }
+                        break;
                 }
             }
         };
@@ -369,6 +402,7 @@ public class RunFragment extends Fragment{
         intentFilter.addAction(COUNTDOWN_KEY);
         intentFilter.addAction(COUNTER_KEY);
         intentFilter.addAction(TEMPO_KEY);
+        intentFilter.addAction(PROGRESS_KEY);
         bManager.registerReceiver(bReceiver, intentFilter);
     }
 

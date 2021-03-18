@@ -12,4 +12,7 @@
     <color name="red_500">#C75454</color>
     <color name="red_700">#A05454</color>
     <color name="gray">#808080</color>
+    <color name="gray_alpha">#32808080</color>
+    <color name="green_100">#5548D166</color>
+    <color name="off_wihte">#eeeeee</color>
 </resources>

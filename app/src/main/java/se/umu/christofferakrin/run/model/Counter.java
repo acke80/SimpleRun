@@ -13,6 +13,8 @@ public class Counter{
     private Thread runningThread;
     private boolean running;
 
+    private boolean paused;
+
     public Counter(int second, int minute, int hour){
         if(second < 0) second = 0;
         if(minute < 0) minute = 0;
@@ -40,15 +42,23 @@ public class Counter{
 
             while(running){
 
-                /* Every second. */
-                if(System.currentTimeMillis() - timer >= SIM) {
-                    timer += SIM;
-                    tickHumanTime();
+                if(paused)
+                    timer = System.currentTimeMillis();
+                else{
+                    /* Every second. */
+                    if(System.currentTimeMillis() - timer >= SIM) {
+                        timer += SIM;
+                        tickHumanTime();
+                    }
                 }
             }
         });
 
         runningThread.start();
+    }
+
+    public void setPaused(boolean paused){
+        this.paused = paused;
     }
 
     public synchronized void stop(){

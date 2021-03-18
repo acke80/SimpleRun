@@ -2,30 +2,26 @@ package se.umu.christofferakrin.run.model;
 
 import android.os.CountDownTimer;
 
-
+/** Counts down in seconds using a CountDownTimer. */
 public class CountDownCounter{
 
     private String countString = "";
     private final CountDownTimer countDownTimer;
     private boolean finishedCountDown;
 
-    private boolean running;
-
     public CountDownCounter(int seconds){
-        running = true;
         countDownTimer = new CountDownTimer((seconds + 1) * 1000, 1000){
             @Override
             public void onTick(long millisUntilFinished){
                 if(millisUntilFinished / 1000 < 1) /* If on last (extra) second. */
                     countString = "Go!";
                 else
-                    countString = Integer.toString((int) (millisUntilFinished / 1000));
+                    countString = Integer.toString((int) ((float) millisUntilFinished / 1000f));
             }
 
             @Override
             public void onFinish(){
                 finishedCountDown = true;
-                running = false;
             }
         };
     }
@@ -40,10 +36,6 @@ public class CountDownCounter{
 
     public String getStringValue(){
         return countString;
-    }
-
-    public boolean isRunning(){
-        return isRunning();
     }
 
 }

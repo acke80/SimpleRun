@@ -146,7 +146,6 @@
 
         </androidx.constraintlayout.widget.ConstraintLayout>
 
-
     </LinearLayout>
 
     <LinearLayout
@@ -157,7 +156,8 @@
             app:layout_constraintTop_toTopOf="parent"
             android:orientation="vertical"
             android:gravity="center"
-            android:layout_marginTop="64dp">
+            android:layout_marginTop="64dp"
+            android:id="@+id/linearLayout2">
 
         <TextView
                 android:layout_width="wrap_content"
@@ -180,6 +180,16 @@
 
     </LinearLayout>
 
+    <ProgressBar
+            android:id="@+id/progressBar"
+            android:layout_width="256dp"
+            android:layout_height="28dp"
+            style="@android:style/Widget.ProgressBar.Horizontal"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            android:visibility="gone"/>
 
     <androidx.appcompat.widget.AppCompatButton
             android:text="Start"

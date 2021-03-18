@@ -16,6 +16,7 @@ import android.os.Vibrator;
 
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
+import androidx.core.content.ContextCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 
@@ -33,6 +34,7 @@ import se.umu.christofferakrin.run.model.Counter;
 import se.umu.christofferakrin.run.model.DistanceHandler;
 import se.umu.christofferakrin.run.model.RunEntity;
 
+import static se.umu.christofferakrin.run.controller.run.RunFragment.PROGRESS_KEY;
 import static se.umu.christofferakrin.run.model.RunGoal.GoalType;
 
 import se.umu.christofferakrin.run.model.RunGoal;
@@ -55,8 +57,6 @@ public class RunService extends Service{
     private FusedLocationProviderClient fusedLocationClient;
     private LocationCallback locationCallback = new ServiceLocationCallback();
 
-    private Thread runningThread;
-
     private BroadcastReceiver bReceiver;
     private LocalBroadcastManager bManager;
 
@@ -65,7 +65,9 @@ public class RunService extends Service{
 
     private NotificationCompat.Builder notificationBuilder;
 
+    private Thread runningThread;
     private static boolean running;
+    private static boolean paused;
 
     private static RunState curRunState;
 
@@ -84,6 +86,7 @@ public class RunService extends Service{
     @Override
     public int onStartCommand(Intent intent, int flags, int startId){
         goalFinished = false;
+        paused = false;
         curRunState = new RunState();
         runGoal = intent.getParcelableExtra(RUN_GOAL_KEY);
         startRun(curRunState);
@@ -114,19 +117,8 @@ public class RunService extends Service{
             @Override
             public void onReceive(Context context, Intent intent) {
                 if(intent.getAction().equals(SET_PAUSE_KEY)){
-                    boolean pause = intent.getBooleanExtra(SET_PAUSE_KEY, false);
-                    if(pause){
-                        running = false;
-                        try{
-                            runningThread.join();
-                        }catch(InterruptedException e){
-                            e.printStackTrace();
-                        }
-                        if(locationCallback != null)
-                            fusedLocationClient.removeLocationUpdates(locationCallback);
-                    }else if(!running){
-                        startRun(curRunState);
-                    }
+                    paused = intent.getBooleanExtra(SET_PAUSE_KEY, false);
+                    System.out.println(paused);
                 }
             }
         };
@@ -177,7 +169,6 @@ public class RunService extends Service{
         locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
         fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, null);
 
-
         runningThread = new Thread(() -> {
             running = true;
             countDownCounter.start();
@@ -191,76 +182,13 @@ public class RunService extends Service{
                         counter.start();
                     }
 
+                    counter.setPaused(paused);
+                    distanceHandler.setPaused(paused);
+
                     if(!curCounterString.equals(counter.getTimerString())){
                         curCounterString = counter.getTimerString();
 
-                        String tempo = distanceHandler.getTempoString(counter.getElapsedSeconds());
-
-                        broadcast(TEMPO_KEY, tempo);
-
-                        String notificationTitle =
-                                "Distance: " + distanceHandler.getDistanceAsString();
-
-                        String notificationContext = "Time: " + counter.getTimerString() +
-                                "  |  Tempo: " + tempo;
-
-                        /* If we have a specific goal. */
-                        if(runGoal.getGoalType() != GoalType.BASIC && !goalFinished){
-                            int[] values = runGoal.getValues();
-
-                            if(runGoal.getGoalType() == GoalType.DISTANCE){
-                                broadcast(COUNTER_KEY, counter.getElapsedSeconds());
-
-                                int distanceGoal =
-                                        DistanceHandler.distanceToMeters(values[0] , values[1]*100);
-                                float deltaDistance =
-                                        distanceGoal - distanceHandler.getDistanceInMeters();
-
-                                if(deltaDistance <= 0){
-                                    stopRun();
-                                }else{
-                                    broadcast(DISTANCE_KEY, deltaDistance);
-                                }
-
-                                if(!goalFinished){
-                                    notificationTitle =
-                                            "Distance left: " +
-                                                    DistanceHandler.
-                                                            parseDistanceToString(deltaDistance);
-                                }
-
-                            }else if(runGoal.getGoalType() == GoalType.TIME){
-                                broadcast(DISTANCE_KEY, distanceHandler.getDistanceInMeters());
-
-                                int secondsGoal =
-                                        Counter.parseTimeToSeconds(values[0], values[1], values[2]);
-                                int deltaSeconds = secondsGoal - counter.getElapsedSeconds();
-
-                                if(deltaSeconds <= 0){
-                                    stopRun();
-                                }else{
-                                    broadcast(COUNTER_KEY, deltaSeconds);
-                                }
-
-                                if(!goalFinished){
-                                    notificationContext =
-                                            "Time left: " +
-                                                    Counter.parseSecondsToTimerString(deltaSeconds)
-                                                    + "  |  Tempo: " + tempo;
-                                }
-                            }
-                        }else{
-                            broadcast(DISTANCE_KEY, distanceHandler.getDistanceInMeters());
-                            broadcast(COUNTER_KEY, counter.getElapsedSeconds());
-
-                            if(goalFinished){
-                                notificationTitle =
-                                        "Goal reached! | " + "Distance: " +
-                                                distanceHandler.getDistanceAsString();
-                            }
-                        }
-
-                        setNotificationContentText(notificationTitle, notificationContext);
+                        update();
 
                         curRunState.setElapsedSeconds(counter.getElapsedSeconds());
                         curRunState.setDistanceInMeters(distanceHandler.getDistanceInMeters());
@@ -274,11 +202,94 @@ public class RunService extends Service{
                     }
                 }
             }
-
             counter.stop();
         });
 
         runningThread.start();
+    }
+
+    private void update(){
+        String tempo = distanceHandler.getTempoString(counter.getElapsedSeconds());
+
+        broadcast(TEMPO_KEY, tempo);
+
+        String notificationTitle =
+                "Distance: " + distanceHandler.getDistanceAsString();
+
+        String notificationContext = "Time: " + counter.getTimerString() +
+                "  |  Tempo: " + tempo;
+
+        /* If we have a specific goal. */
+        if(runGoal.getGoalType() != GoalType.BASIC && !goalFinished){
+            int[] values = runGoal.getValues();
+
+            if(runGoal.getGoalType() == GoalType.DISTANCE){
+                broadcast(COUNTER_KEY, counter.getElapsedSeconds());
+
+                int distanceGoal =
+                        DistanceHandler.distanceToMeters(values[0] , values[1]*100);
+                float deltaDistance =
+                        distanceGoal - distanceHandler.getDistanceInMeters();
+
+                if(deltaDistance <= 0){
+                    stopRun();
+                }else{
+                    broadcast(DISTANCE_KEY, deltaDistance);
+
+                    if(distanceHandler.getDistanceInMeters() > 0){
+                        int progress =
+                                (int) ((float) distanceHandler.getDistanceInMeters() /
+                                        (float) distanceGoal * 100f);
+                        broadcast(PROGRESS_KEY, progress);
+                    }
+                }
+
+                if(!goalFinished){
+                    notificationTitle =
+                            "Distance left: " +
+                                    DistanceHandler.
+                                            parseDistanceToString(deltaDistance);
+                }
+
+            }else if(runGoal.getGoalType() == GoalType.TIME){
+                broadcast(DISTANCE_KEY, distanceHandler.getDistanceInMeters());
+
+                int secondsGoal =
+                        Counter.parseTimeToSeconds(values[0], values[1], values[2]);
+                int deltaSeconds = secondsGoal - counter.getElapsedSeconds();
+
+                if(deltaSeconds <= 0){
+                    stopRun();
+                }else{
+                    broadcast(COUNTER_KEY, deltaSeconds);
+
+                    if(counter.getElapsedSeconds() > 0){
+                        int progress = (int) ((float) counter.getElapsedSeconds() /
+                                        (float) secondsGoal * 100f);
+                        broadcast(PROGRESS_KEY, progress);
+                    }
+                }
+
+                if(!goalFinished){
+                    notificationContext =
+                            "Time left: " +
+                                    Counter.parseSecondsToTimerString(deltaSeconds)
+                                    + "  |  Tempo: " + tempo;
+                }
+            }
+        }else{
+            broadcast(DISTANCE_KEY, distanceHandler.getDistanceInMeters());
+            broadcast(COUNTER_KEY, counter.getElapsedSeconds());
+            broadcast(PROGRESS_KEY, -1);
+        }
+
+        if(goalFinished){
+                notificationTitle =
+                        "Goal reached! | " + "Distance: " +
+                                distanceHandler.getDistanceAsString();
+        }
+
+        setNotificationContentText(notificationTitle, notificationContext);
     }
 
     private void stopRun(){
@@ -301,7 +312,7 @@ public class RunService extends Service{
     private void setNotificationContentText(String contentTitle, String contentText){
         if(goalFinished){
             notificationBuilder.setColorized(true);
-            notificationBuilder.setColor(0xAA48D166);
+            notificationBuilder.setColor(ContextCompat.getColor(this, R.color.green_700));
         }
         notificationBuilder.setContentTitle(contentTitle);
         notificationBuilder.setContentText(contentText);
@@ -331,25 +342,10 @@ public class RunService extends Service{
                 distanceHandler.setLocation(location);
             }
         }
-    };
-
-    public static boolean isRunning(){
-        return running;
     }
 
-    public static String getTimerString(){
-        if(curRunState == null) return "";
-        return Counter.parseSecondsToTimerString(curRunState.getElapsedSeconds());
-    }
-
-    public static String getDistanceString(){
-        if(curRunState == null) return "";
-        return DistanceHandler.parseDistanceToString(curRunState.getDistanceInMeters());
-    }
-
-    public static String getTempoString(){
-        if(curRunState == null) return "";
-        return DistanceHandler.parseTempoToString(curRunState.getTempo());
+    public static boolean isPaused(){
+        return paused;
     }
 
     public static float getDistanceInMeters(){
