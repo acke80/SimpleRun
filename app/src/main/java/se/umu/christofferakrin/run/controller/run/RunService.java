@@ -8,8 +8,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.location.LocationListener;
-import android.location.LocationManager;
+import android.location.Location;
 import android.os.Build;
 import android.os.IBinder;
 import android.os.VibrationEffect;
@@ -19,6 +18,12 @@ import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
+
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationCallback;
+import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationResult;
+import com.google.android.gms.location.LocationServices;
 
 import se.umu.christofferakrin.run.MainActivity;
 import se.umu.christofferakrin.run.R;
@@ -47,8 +52,8 @@ public class RunService extends Service{
     private Counter counter;
     private DistanceHandler distanceHandler;
 
-    private LocationManager locationManager;
-    private LocationListener locationListener;
+    private FusedLocationProviderClient fusedLocationClient;
+    private LocationCallback locationCallback = new ServiceLocationCallback();
 
     private Thread runningThread;
 
@@ -117,8 +122,8 @@ public class RunService extends Service{
                         }catch(InterruptedException e){
                             e.printStackTrace();
                         }
-                        if(locationListener != null)
-                            locationManager.removeUpdates(locationListener);
+                        if(locationCallback != null)
+                            fusedLocationClient.removeLocationUpdates(locationCallback);
                     }else if(!running){
                         startRun(curRunState);
                     }
@@ -135,7 +140,7 @@ public class RunService extends Service{
     public void onDestroy(){
         running = false;
 
-        locationManager.removeUpdates(locationListener);
+        fusedLocationClient.removeLocationUpdates(locationCallback);
 
         try{
             runningThread.join();
@@ -165,12 +170,13 @@ public class RunService extends Service{
         counter = new Counter(runState.getElapsedSeconds());
         distanceHandler = new DistanceHandler(runState.getDistanceInMeters());
 
-        locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
+        LocationRequest locationRequest = LocationRequest.create();
+        locationRequest.setInterval(2500);
+        locationRequest.setFastestInterval(1500);
+        locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+        fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, null);
 
-        locationListener = location -> distanceHandler.setLocation(location);
-
-        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 2000,
-                3, locationListener);
 
         runningThread = new Thread(() -> {
             running = true;
@@ -315,6 +321,17 @@ public class RunService extends Service{
 
         LocalBroadcastManager.getInstance(this).sendBroadcast(RTReturn);
     }
+
+    private class ServiceLocationCallback extends LocationCallback {
+        @Override
+        public void onLocationResult(LocationResult locationResult) {
+            if (locationResult == null) return;
+
+            for (Location location : locationResult.getLocations()) {
+                distanceHandler.setLocation(location);
+            }
+        }
+    };
 
     public static boolean isRunning(){
         return running;

@@ -62,7 +62,6 @@ public class RunFragment extends Fragment{
     private NumberPicker numberPicker2;
     private ConstraintLayout numberPickerLayout;
 
-
     private BottomNavigationView navView;
 
     public static final String DISTANCE_KEY = "distance";
@@ -264,8 +263,6 @@ public class RunFragment extends Fragment{
                             timePicker2.getValue(),
                             timePicker3.getValue()});
         }
-
-
 
         spinner.setVisibility(View.GONE);
         timePickerLayout.setVisibility(View.GONE);
