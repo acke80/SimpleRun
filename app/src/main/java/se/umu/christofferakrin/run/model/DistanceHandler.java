@@ -11,16 +11,16 @@ public class DistanceHandler{
 
     private static final DecimalFormat df = new DecimalFormat("#.##");
 
-    /* Set location accuracy limiter, were lower value is better accuracy.
-    * This helps with ignoring GPS startup inaccuracy, or if the location
-    * has a bad GPS signal (indoors etc). Even indoors i notice that the signal
-    * tends to be accurate for the first few invokes, but stabilizes overtime and
-    * becomes quite accurate. */
-    private static final float  LOCATION_ACCURACY_MAX = 9f;
-
     static {
         df.setRoundingMode(RoundingMode.FLOOR);
     }
+
+    /* Ignore this many location invokes at start. This helps with ignoring
+    * GPS startup inaccuracies. When we surpass this count, we still add
+    * the (straight line) distance from the first location to the
+    * current location. */
+    private static final int LOCATION_ON_IGNORE_COUNT = 3;
+    private int locationIgnoreCount = 0;
 
     private float distanceInMeters;
     private Location curLocation;
@@ -52,11 +52,16 @@ public class DistanceHandler{
     }
 
     public void setLocation(Location location){
-        if(location == null || location.getAccuracy() > LOCATION_ACCURACY_MAX)
+        if(location == null)
             return;
 
         if(curLocation == null){ /* If this is first invoke. */
             curLocation = location;
+            return;
+        }
+
+        if(locationIgnoreCount < LOCATION_ON_IGNORE_COUNT){
+            locationIgnoreCount++;
             return;
         }
 
