@@ -191,20 +191,25 @@
             app:layout_constraintTop_toTopOf="parent"
             android:visibility="gone"/>
 
-    <Button
+    <androidx.appcompat.widget.AppCompatButton
             android:text="Start"
             android:layout_width="256dp"
             android:layout_height="48dp"
             android:id="@+id/start_button"
+            android:background="@drawable/start_button"
+            android:textColor="@color/white"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             android:layout_marginBottom="10dp" />
 
-    <Button
+    <androidx.appcompat.widget.AppCompatButton
             android:text="Stop"
+            style="style/Widget.MaterialComponents.Button.Icon"
             android:layout_width="wrap_content"
             android:layout_height="48dp"
+            android:background="@drawable/stop_button"
+            android:textColor="@color/white"
             android:id="@+id/stop_button"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"
@@ -212,10 +217,13 @@
             android:layout_marginBottom="20dp"
             android:visibility="gone" />
 
-    <Button
+    <androidx.appcompat.widget.AppCompatButton
             android:text="Pause"
+            style="style/Widget.MaterialComponents.Button.Icon"
             android:layout_width="wrap_content"
             android:layout_height="48dp"
+            android:background="@drawable/pause_button"
+            android:textColor="@color/white"
             android:id="@+id/pause_button"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
@@ -223,11 +231,13 @@
             android:layout_marginBottom="20dp"
             android:visibility="gone" />
 
-    <Button
+    <androidx.appcompat.widget.AppCompatButton
             android:text="Resume"
             style="style/Widget.MaterialComponents.Button.Icon"
             android:layout_width="wrap_content"
             android:layout_height="48dp"
+            android:background="@drawable/pause_button"
+            android:textColor="@color/white"
             android:id="@+id/resume_button"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"

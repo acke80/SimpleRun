@@ -15,11 +15,8 @@ public class DistanceHandler{
         df.setRoundingMode(RoundingMode.FLOOR);
     }
 
-    /* Ignore this many location invokes at start. This helps with ignoring
-    * GPS startup inaccuracies. When we surpass this count, we still add
-    * the (straight line) distance from the first location to the
-    * current location. */
-    private static final int LOCATION_ON_IGNORE_COUNT = 3;
+    /* Ignore early inaccuracies. */
+    private static final float LOCATION_IGNORE_COUNT = 1;
     private int locationIgnoreCount = 0;
 
     private float distanceInMeters;
@@ -55,13 +52,13 @@ public class DistanceHandler{
         if(location == null)
             return;
 
-        if(curLocation == null){ /* If this is first invoke. */
-            curLocation = location;
+        if(locationIgnoreCount < LOCATION_IGNORE_COUNT){
+            locationIgnoreCount++;
             return;
         }
 
-        if(locationIgnoreCount < LOCATION_ON_IGNORE_COUNT){
-            locationIgnoreCount++;
+        if(curLocation == null){ /* If this is first invoke. */
+            curLocation = location;
             return;
         }
 

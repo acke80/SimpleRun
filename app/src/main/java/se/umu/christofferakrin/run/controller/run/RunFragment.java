@@ -7,7 +7,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
-import android.content.res.ColorStateList;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.VibrationEffect;
@@ -26,7 +25,6 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
-import androidx.appcompat.content.res.AppCompatResources;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -92,34 +90,56 @@ public class RunFragment extends Fragment{
         textViewTempo = root.findViewById(R.id.text_tempo);
 
         startButton = root.findViewById(R.id.start_button);
-        startButton.setOnClickListener(v -> {
-            vibrate();
-            startRun();
-        });
-
         stopButton = root.findViewById(R.id.stop_button);
-        stopButton.setOnClickListener(v -> {
-            vibrate();
-            stopRun();
-            toResultActivity();
-        });
-
         pauseButton = root.findViewById(R.id.pause_button);
-        pauseButton.setOnClickListener(v -> {
-            vibrate();
-            pauseRun();
-        });
-
         resumeButton = root.findViewById(R.id.resume_button);
-        resumeButton.setOnClickListener(v -> {
-            vibrate();
-            resumeRun();
-        });
+        createButtonOnClickListeners();
 
         timePickerLayout = root.findViewById(R.id.timePickerLayout);
         numberPickerLayout = root.findViewById(R.id.numberPickerLayout);
 
         spinner = root.findViewById(R.id.spinner);
+        createSpinnerAdapter();
+
+        timePicker1 = root.findViewById(R.id.timePicker1);
+        timePicker2 = root.findViewById(R.id.timePicker2);
+        timePicker3 = root.findViewById(R.id.timePicker3);
+        numberPicker1 = root.findViewById(R.id.numberPicker1);
+        numberPicker2 = root.findViewById(R.id.numberPicker2);
+        createPickers();
+
+        progressBar = root.findViewById(R.id.progressBar);
+        progressBar.setProgressDrawable(ContextCompat.getDrawable(getContext(),
+                R.drawable.progressbar));
+
+        adaptTextSize();
+
+        updateView();
+
+        return root;
+    }
+
+    private void createButtonOnClickListeners(){
+        startButton.setOnClickListener(v -> {
+            vibrate();
+            startRun();
+        });
+        stopButton.setOnClickListener(v -> {
+            vibrate();
+            stopRun();
+            toResultActivity();
+        });
+        pauseButton.setOnClickListener(v -> {
+            vibrate();
+            pauseRun();
+        });
+        resumeButton.setOnClickListener(v -> {
+            vibrate();
+            resumeRun();
+        });
+    }
+
+    private void createSpinnerAdapter(){
         ArrayAdapter<String> spinnerArrayAdapter =
                 new ArrayAdapter<>(getActivity(), R.layout.spinner_item,
                         new String[]{"Basic training", "Distance goal", "Time goal"});
@@ -139,45 +159,30 @@ public class RunFragment extends Fragment{
                     timePickerLayout.setVisibility(View.VISIBLE);
                 }
             }
-
             @Override
             public void onNothingSelected(AdapterView<?> parentView) {
             }
 
         });
+    }
 
-        timePicker1 = root.findViewById(R.id.timePicker1);
+    private void createPickers(){
         timePicker1.setMinValue(0);
         timePicker1.setMaxValue(10000);
         timePicker1.setWrapSelectorWheel(false);
 
-        timePicker2 = root.findViewById(R.id.timePicker2);
         timePicker2.setMinValue(0);
         timePicker2.setMaxValue(59);
 
-        timePicker3 = root.findViewById(R.id.timePicker3);
         timePicker3.setMinValue(0);
         timePicker3.setMaxValue(59);
 
-        numberPicker1 = root.findViewById(R.id.numberPicker1);
         numberPicker1.setMinValue(0);
         numberPicker1.setMaxValue(10000);
         numberPicker1.setWrapSelectorWheel(false);
 
-        numberPicker2 = root.findViewById(R.id.numberPicker2);
         numberPicker2.setMinValue(0);
         numberPicker2.setMaxValue(9);
-
-        progressBar = root.findViewById(R.id.progressBar);
-        progressBar.setProgressDrawable(ContextCompat.getDrawable(getContext(), R.drawable.progressbar));
-
-        requestFineLocationPermission();
-
-        adaptTextSize();
-
-        updateView();
-
-        return root;
     }
 
     @Override
@@ -257,8 +262,10 @@ public class RunFragment extends Fragment{
     }
 
     private void startRun(){
-        if(!checkFineLocationPermission())
+        if(!checkFineLocationPermission()){
+            requestFineLocationPermission();
             return;
+        }
 
         RunGoal runGoal = new RunGoal(RunGoal.GoalType.BASIC, null);
         if(spinner.getSelectedItemPosition() == 1){
@@ -396,6 +403,11 @@ public class RunFragment extends Fragment{
             }
         };
 
+        initBroadcastManager();
+    }
+
+    /** Initializes the BroadcastManager for our BroadcastReceiver. */
+    private void initBroadcastManager(){
         bManager = LocalBroadcastManager.getInstance(getActivity());
         IntentFilter intentFilter = new IntentFilter();
         intentFilter.addAction(DISTANCE_KEY);

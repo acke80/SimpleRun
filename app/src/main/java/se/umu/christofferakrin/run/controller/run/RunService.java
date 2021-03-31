@@ -9,8 +9,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.location.Location;
-import android.location.LocationListener;
-import android.location.LocationManager;
 import android.os.Build;
 import android.os.IBinder;
 import android.os.VibrationEffect;
@@ -56,8 +54,9 @@ public class RunService extends Service{
     private Counter counter;
     private DistanceHandler distanceHandler;
 
-    private LocationManager locationManager;
-    private LocationListener locationListener;
+    private String notificationTitle;
+    private String notificationContext;
+    private String tempoString;
 
     private BroadcastReceiver bReceiver;
     private LocalBroadcastManager bManager;
@@ -78,6 +77,20 @@ public class RunService extends Service{
     private RunGoal runGoal;
 
     private boolean goalFinished = false;
+
+    private FusedLocationProviderClient fusedLocationClient;
+    private LocationCallback locationCallback = new ServiceLocationCallback();
+
+    private class ServiceLocationCallback extends LocationCallback {
+        @Override
+        public void onLocationResult(LocationResult locationResult) {
+            if (locationResult == null) return;
+
+            for (Location location : locationResult.getLocations()) {
+                distanceHandler.setLocation(location);
+            }
+        }
+    }
 
     @Nullable
     @Override
@@ -133,8 +146,7 @@ public class RunService extends Service{
     public void onDestroy(){
         running = false;
 
-        locationManager.removeUpdates(locationListener);
-        locationManager = null;
+        fusedLocationClient.removeLocationUpdates(locationCallback);
 
         try{
             runningThread.join();
@@ -154,21 +166,34 @@ public class RunService extends Service{
         super.onDestroy();
     }
 
-    /** Starts the Location listener and the run thread which handles broadcasting.
-     * Suppresses Missing Permission as the Service expects the Permission to be handled
-     * before it is started. */
-    @SuppressLint("MissingPermission")
+    /** Starts the Location listener and the run thread which handles broadcasting.*/
     private void startRun(RunState runState){
         countDownCounter = new CountDownCounter(3);
 
         counter = new Counter(runState.getElapsedSeconds());
         distanceHandler = new DistanceHandler(runState.getDistanceInMeters());
 
-        locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
-        locationListener = location -> distanceHandler.setLocation(location);
-        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 2500,
-                5, locationListener);
+        startLocationListener();
 
+        startRunningThread();
+    }
+
+    /** Suppresses Missing Permission as the Service expects the Permission to be handled
+     * before it is started. */
+    @SuppressLint("MissingPermission")
+    private void startLocationListener(){
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
+        LocationRequest locationRequest = LocationRequest.create();
+        locationRequest.setInterval(2500);
+        locationRequest.setFastestInterval(1500);
+        locationRequest.setMaxWaitTime(5000);
+        locationRequest.setWaitForAccurateLocation(true);
+        locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+        fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, null);
+    }
+
+    /** Defines and starts the thread for handling running updates. */
+    private void startRunningThread(){
         runningThread = new Thread(() -> {
             running = true;
             countDownCounter.start();
@@ -209,74 +234,25 @@ public class RunService extends Service{
     }
 
     private void update(){
-        String tempo = distanceHandler.getTempoString(counter.getElapsedSeconds());
+        tempoString = distanceHandler.getTempoString(counter.getElapsedSeconds());
 
-        broadcast(TEMPO_KEY, tempo);
+        broadcast(TEMPO_KEY, tempoString);
 
-        String notificationTitle =
+        notificationTitle =
                 "Distance: " + distanceHandler.getDistanceAsString();
 
-        String notificationContext = "Time: " + counter.getTimerString() +
-                "  |  Tempo: " + tempo;
+        notificationContext = "Time: " + counter.getTimerString() +
+                "  |  Tempo: " + tempoString;
 
         /* If we have a specific goal. */
         if(runGoal.getGoalType() != GoalType.BASIC && !goalFinished){
             int[] values = runGoal.getValues();
 
-            if(runGoal.getGoalType() == GoalType.DISTANCE){
-                broadcast(COUNTER_KEY, counter.getElapsedSeconds());
+            if(runGoal.getGoalType() == GoalType.DISTANCE)
+                updateDistanceGoal(values);
+            else if(runGoal.getGoalType() == GoalType.TIME)
+                updateTimeGoal(values);
 
-                int distanceGoal =
-                        DistanceHandler.distanceToMeters(values[0] , values[1]*100);
-                float deltaDistance =
-                        distanceGoal - distanceHandler.getDistanceInMeters();
-
-                if(deltaDistance <= 0){
-                    stopRun();
-                }else{
-                    broadcast(DISTANCE_KEY, deltaDistance);
-
-                    if(distanceHandler.getDistanceInMeters() > 0){
-                        int progress =
-                                (int) ((float) distanceHandler.getDistanceInMeters() /
-                                        (float) distanceGoal * 100f);
-                        broadcast(PROGRESS_KEY, progress);
-                    }
-                }
-
-                if(!goalFinished){
-                    notificationTitle =
-                            "Distance left: " +
-                                    DistanceHandler.
-                                            parseDistanceToString(deltaDistance);
-                }
-
-            }else if(runGoal.getGoalType() == GoalType.TIME){
-                broadcast(DISTANCE_KEY, distanceHandler.getDistanceInMeters());
-
-                int secondsGoal =
-                        Counter.parseTimeToSeconds(values[0], values[1], values[2]);
-                int deltaSeconds = secondsGoal - counter.getElapsedSeconds();
-
-                if(deltaSeconds <= 0){
-                    stopRun();
-                }else{
-                    broadcast(COUNTER_KEY, deltaSeconds);
-
-                    if(counter.getElapsedSeconds() > 0){
-                        int progress = (int) ((float) counter.getElapsedSeconds() /
-                                        (float) secondsGoal * 100f);
-                        broadcast(PROGRESS_KEY, progress);
-                    }
-                }
-
-                if(!goalFinished){
-                    notificationContext =
-                            "Time left: " +
-                                    Counter.parseSecondsToTimerString(deltaSeconds)
-                                    + "  |  Tempo: " + tempo;
-                }
-            }
         }else{
             broadcast(DISTANCE_KEY, distanceHandler.getDistanceInMeters());
             broadcast(COUNTER_KEY, counter.getElapsedSeconds());
@@ -292,9 +268,57 @@ public class RunService extends Service{
         setNotificationContentText(notificationTitle, notificationContext);
     }
 
+    private void updateDistanceGoal(int[] values){
+        broadcast(COUNTER_KEY, counter.getElapsedSeconds());
+
+        int distanceGoal = DistanceHandler.distanceToMeters(values[0] , values[1]*100);
+        float deltaDistance = distanceGoal - distanceHandler.getDistanceInMeters();
+
+        if(deltaDistance <= 0){
+            stopRun();
+        }else{
+            broadcast(DISTANCE_KEY, deltaDistance);
+
+            if(distanceHandler.getDistanceInMeters() > 0){
+                int progress = (int) (distanceHandler.getDistanceInMeters() /
+                                (float) distanceGoal * 100f);
+                broadcast(PROGRESS_KEY, progress);
+            }
+        }
+
+        if(!goalFinished){
+            notificationTitle =
+                    "Distance left: " +
+                            DistanceHandler.parseDistanceToString(deltaDistance);
+        }
+    }
+
+    private void updateTimeGoal(int[] values){
+        broadcast(DISTANCE_KEY, distanceHandler.getDistanceInMeters());
+
+        int secondsGoal = Counter.parseTimeToSeconds(values[0], values[1], values[2]);
+        int deltaSeconds = secondsGoal - counter.getElapsedSeconds();
+
+        if(deltaSeconds <= 0){
+            stopRun();
+        }else{
+            broadcast(COUNTER_KEY, deltaSeconds);
+
+            if(counter.getElapsedSeconds() > 0){
+                int progress = (int) ((float) counter.getElapsedSeconds() /
+                        (float) secondsGoal * 100f);
+                broadcast(PROGRESS_KEY, progress);
+            }
+        }
+
+        if(!goalFinished){
+            notificationContext = "Time left: " + Counter.parseSecondsToTimerString(deltaSeconds)
+                    + "  |  Tempo: " + tempoString;
+        }
+    }
+
     private void stopRun(){
         vibrate();
-
         goalFinished = true;
     }
 
