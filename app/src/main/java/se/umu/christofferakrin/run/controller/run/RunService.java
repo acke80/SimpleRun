@@ -246,12 +246,12 @@ public class RunService extends Service{
 
         /* If we have a specific goal. */
         if(runGoal.getGoalType() != GoalType.BASIC && !goalFinished){
-            int[] values = runGoal.getValues();
+            int[] goalValues = runGoal.getValues();
 
             if(runGoal.getGoalType() == GoalType.DISTANCE)
-                updateDistanceGoal(values);
+                updateDistanceGoal(goalValues);
             else if(runGoal.getGoalType() == GoalType.TIME)
-                updateTimeGoal(values);
+                updateTimeGoal(goalValues);
 
         }else{
             broadcast(DISTANCE_KEY, distanceHandler.getDistanceInMeters());
@@ -268,10 +268,10 @@ public class RunService extends Service{
         setNotificationContentText(notificationTitle, notificationContext);
     }
 
-    private void updateDistanceGoal(int[] values){
+    private void updateDistanceGoal(int[] goalValues){
         broadcast(COUNTER_KEY, counter.getElapsedSeconds());
 
-        int distanceGoal = DistanceHandler.distanceToMeters(values[0] , values[1]*100);
+        int distanceGoal = DistanceHandler.distanceToMeters(goalValues[0] , goalValues[1]*100);
         float deltaDistance = distanceGoal - distanceHandler.getDistanceInMeters();
 
         if(deltaDistance <= 0){
@@ -293,10 +293,10 @@ public class RunService extends Service{
         }
     }
 
-    private void updateTimeGoal(int[] values){
+    private void updateTimeGoal(int[] goalValues){
         broadcast(DISTANCE_KEY, distanceHandler.getDistanceInMeters());
 
-        int secondsGoal = Counter.parseTimeToSeconds(values[0], values[1], values[2]);
+        int secondsGoal = Counter.parseTimeToSeconds(goalValues[0], goalValues[1], goalValues[2]);
         int deltaSeconds = secondsGoal - counter.getElapsedSeconds();
 
         if(deltaSeconds <= 0){

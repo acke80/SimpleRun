@@ -16,6 +16,9 @@ import java.util.ArrayList;
 
 import se.umu.christofferakrin.run.R;
 import se.umu.christofferakrin.run.RunApp;
+import se.umu.christofferakrin.run.controller.history.HistoryRecyclerAdapter;
+import se.umu.christofferakrin.run.model.Counter;
+import se.umu.christofferakrin.run.model.DistanceHandler;
 import se.umu.christofferakrin.run.model.StatisticsManager;
 import se.umu.christofferakrin.run.model.RunEntity;
 
@@ -36,11 +39,8 @@ public class StatisticsFragment extends Fragment{
         recyclerView.setHasFixedSize(true);
         recyclerView.setLayoutManager(new LinearLayoutManager(root.getContext()));
 
-        Thread thread = new Thread(() -> {
-            ArrayList<RunEntity> runEntities =
-                    (ArrayList<RunEntity>) RunApp.getDatabase().runEntityDao().getAll();
-
-            StatisticsManager am = new StatisticsManager(runEntities);
+        RunApp.getDatabase().runEntityDao().getAll().observe(getActivity(), (runEntities -> {
+            StatisticsManager am = new StatisticsManager((ArrayList<RunEntity>) runEntities);
 
             title = new String[4];
             content = new String[4];
@@ -58,18 +58,9 @@ public class StatisticsFragment extends Fragment{
             content[3] = am.getNumOfRunsString();
 
 
-        });
-
-        thread.start();
-
-        try{
-            thread.join();
-        }catch(InterruptedException e){
-            e.printStackTrace();
-        }
-
-        recyclerView.setAdapter(
-                new StatisticsRecyclerAdapter(container.getContext(), title, content));
+            recyclerView.setAdapter(
+                    new StatisticsRecyclerAdapter(container.getContext(), title, content));
+        }));
 
         return root;
     }

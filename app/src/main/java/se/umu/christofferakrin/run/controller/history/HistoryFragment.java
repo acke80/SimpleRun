@@ -40,10 +40,7 @@ public class HistoryFragment extends Fragment{
         recyclerView.setHasFixedSize(true);
         recyclerView.setLayoutManager(new LinearLayoutManager(root.getContext()));
 
-        Thread thread = new Thread(() -> {
-            ArrayList<RunEntity> runEntities =
-                    (ArrayList<RunEntity>) RunApp.getDatabase().runEntityDao().getAll();
-
+        RunApp.getDatabase().runEntityDao().getAll().observe(getActivity(), (runEntities -> {
             int size = runEntities.size();
             distance = new String[size];
             time = new String[size];
@@ -60,21 +57,10 @@ public class HistoryFragment extends Fragment{
                 date[i] = runEntities.get(j).dateString;
             }
 
-        });
 
-        thread.start();
-
-        try{
-            thread.join();
-        }catch(InterruptedException e){
-            e.printStackTrace();
-        }
-
-        recyclerView.setAdapter(
-                new HistoryRecyclerAdapter(
-                        container.getContext(), distance, time, tempo, date
-                )
-        );
+            recyclerView.setAdapter(new HistoryRecyclerAdapter(
+                    container.getContext(), distance, time, tempo, date));
+        }));
 
         return root;
     }
